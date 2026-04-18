@@ -1,6 +1,24 @@
+# Core
 djitellopy
+google-genai>=1.0.0
+openai
+
+# Audio — sounddevice is the primary driver (cross-platform, numpy-friendly).
+# PyAudio is kept as an optional fallback on older setups.
+sounddevice
+numpy
+PyAudio
+
+# Web Dashboard — pinned: starlette 1.0 broke compatibility with fastapi 0.115.
+fastapi>=0.115,<0.116
+starlette>=0.40,<0.41
+uvicorn
+websockets
+jinja2
+
+# Utilities
+python-dotenv
+Pillow
+pydantic
 opencv-python
-pygame
-pyttsx3
-speech_recognition
-face_recognition
+pytest

@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+venv
+logs/
+
+# Personal tool caches — not meant to be shared across machines
+.agent/
+.agents/
+.claude/

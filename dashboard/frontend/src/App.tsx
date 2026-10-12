@@ -1,24 +1,24 @@
-import { Activity, Camera, ChevronDown, Gauge, Hand, Mic, OctagonX, Plane, Settings, WifiOff } from "lucide-react";
+import { Activity, Camera, ClipboardCheck, Compass, Crosshair, Gamepad2, Gauge, Mic, OctagonX, ScanLine, Settings, ShieldAlert } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ConversationPanel } from "@/features/chat/ConversationPanel";
-import { EmergencyControls, FlightControls } from "@/features/controls/FlightControls";
+import { CommandDeck } from "@/features/chat/CommandDeck";
+import { EmergencyControls, FlightControls, QuickSafetyBar } from "@/features/controls/FlightControls";
+import { MissionLog } from "@/features/log/MissionLog";
+import { NavigationPanel } from "@/features/map/TacticalMap";
 import { SafetyAlerts } from "@/features/safety/SafetyAlerts";
 import { SafetyBanners } from "@/features/safety/SafetyBanners";
+import { PreflightList, VerdictBadge, preflightChecks, preflightVerdict } from "@/features/safety/PreflightPanel";
+import { Panel } from "@/features/shell/Panel";
+import { TopBar } from "@/features/shell/TopBar";
 import { SystemPanels } from "@/features/telemetry/SystemPanels";
-import { TelemetryStrip } from "@/features/telemetry/TelemetryStrip";
 import { TracePanel } from "@/features/traces/TracePanel";
 import { VideoStage } from "@/features/video/VideoStage";
 import { fetchTraces, fetchVideoStatus, getDashboardToken, sendJson, sendOperator } from "@/lib/api";
@@ -34,21 +34,24 @@ import {
   reduceDashboardMessage,
   type DashboardMessage
 } from "@/lib/dashboard-state";
-import { buildWebSocketUrl, getStateMetric } from "@/lib/format";
+import { buildWebSocketUrl, getPositionParts, getStateMetric } from "@/lib/format";
 import { useOperatorHotkeys } from "@/lib/hotkeys";
-import { cn } from "@/lib/utils";
+import { appendTrail, type TrailPoint } from "@/lib/trail";
 import { createFrameRequestLoop, type FrameRequestLoop } from "@/lib/video-stream";
 import type { ConnectionState, DashboardSnapshot, OperatorAction, OperatorArgs, VideoStatus } from "@/types";
 
 type Settings = {
   camera: boolean;
   voice: boolean;
+  hud: boolean;
   showLatency: boolean;
   showFps: boolean;
 };
 
-const DEFAULT_SETTINGS: Settings = { camera: true, voice: true, showLatency: true, showFps: true };
+const DEFAULT_SETTINGS: Settings = { camera: true, voice: true, hud: true, showLatency: true, showFps: true };
 const SETTINGS_KEY = "telloai.settings";
+/** Give up on the "AI working" indicator if no reply ever arrives. */
+const AWAIT_REPLY_TIMEOUT_MS = 45_000;
 
 function loadSettings(): Settings {
   try {
@@ -67,10 +70,11 @@ export function App() {
   const [connection, setConnection] = React.useState<ConnectionState>("connecting");
   const [videoStatus, setVideoStatus] = React.useState<VideoStatus>({ active: false });
   const [micActive, setMicActive] = React.useState(false);
-  const [missionClock, setMissionClock] = React.useState("00:00:00");
   const [settings, setSettings] = React.useState<Settings>(loadSettings);
   const [fps, setFps] = React.useState(0);
   const [latencyMs, setLatencyMs] = React.useState<number | null>(null);
+  const [awaitingSince, setAwaitingSince] = React.useState<number | null>(null);
+  const [trail, setTrail] = React.useState<TrailPoint[]>([{ x: 0, y: 0 }]);
   const socketRef = React.useRef<WebSocket | null>(null);
   const audioRef = React.useRef<PushToTalkAudio | null>(null);
   const frameLoopRef = React.useRef<FrameRequestLoop | null>(null);
@@ -140,6 +144,12 @@ export function App() {
             }
           }
           return;
+        }
+        if (payload.type === "chat") {
+          const role = (payload as { role?: string }).role;
+          if (role === "assistant" || role === "system") {
+            setAwaitingSince(null);
+          }
         }
         setModel((current) => reduceDashboardMessage(current, payload));
       };
@@ -255,18 +265,20 @@ export function App() {
   }, []);
 
   React.useEffect(() => {
-    const start = Date.now();
-    const tick = () => {
-      const elapsed = Math.floor((Date.now() - start) / 1000);
-      const hh = String(Math.floor(elapsed / 3600)).padStart(2, "0");
-      const mm = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
-      const ss = String(elapsed % 60).padStart(2, "0");
-      setMissionClock(`${hh}:${mm}:${ss}`);
-    };
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    if (awaitingSince === null) {
+      return;
+    }
+    const timer = setTimeout(() => setAwaitingSince(null), AWAIT_REPLY_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [awaitingSince]);
+
+  const position = getPositionParts(model.state);
+  const isFlying = getStateMetric<boolean>(model.state, "is_flying", false);
+
+  // Grow the flight trail from the dead-reckoned position the server pushes.
+  React.useEffect(() => {
+    setTrail((current) => appendTrail(current, { x: position.x, y: position.y }, isFlying));
+  }, [position.x, position.y, isFlying]);
 
   // keepHold: camera-only requests (Observe) must not lift an operator STOP.
   const sendCommand = React.useCallback(
@@ -276,7 +288,9 @@ export function App() {
       const sent = sendJson(socketRef.current, payload);
       if (!sent) {
         appendSystemMessage("Command not sent — the dashboard socket is offline.");
+        return;
       }
+      setAwaitingSince(Date.now());
     },
     [appendSystemMessage]
   );
@@ -348,7 +362,9 @@ export function App() {
 
     micActiveRef.current = false;
     setMicActive(false);
-    sendJson(socketRef.current, { type: "audio_end" });
+    if (sendJson(socketRef.current, { type: "audio_end" })) {
+      setAwaitingSince(Date.now());
+    }
     await audioRef.current?.stop();
   }, []);
 
@@ -371,146 +387,143 @@ export function App() {
   );
 
   const battery = getStateMetric<number | undefined>(model.state, "battery_pct", undefined);
-  const lowBattery = battery !== undefined && battery <= 20;
+  const heading = getStateMetric<number | undefined>(model.state, "heading_deg", undefined);
+  const height = getStateMetric<number | undefined>(model.state, "height_cm", isFlying ? position.z : undefined);
+  const speed = getStateMetric<number | undefined>(model.state, "speed_cms", undefined);
+  const flightSeconds = getStateMetric<number | undefined>(model.state, "flight_duration_s", undefined);
   const connected = connection === "connected";
   const linkLost = isLinkLost(model.state);
   const operatorHold = isOperatorHold(model.state);
-
-  const connDot =
-    connection === "connected" ? "bg-success" : connection === "connecting" ? "bg-warning" : "bg-destructive";
+  const checks = preflightChecks({
+    connected,
+    linkLost,
+    battery,
+    video: videoStatus.active && settings.camera,
+    mode: model.mode,
+    operatorHold
+  });
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex h-screen flex-col bg-background">
-        {/* Header */}
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Plane className="size-4 -rotate-45" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">TELLOAI</span>
-          </div>
+      <div className="deck-backdrop flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
+        <TopBar
+          connection={connection}
+          mode={model.mode}
+          flying={isFlying}
+          linkLost={linkLost}
+          operatorHold={operatorHold}
+          battery={battery}
+          flightSeconds={flightSeconds}
+          settings={<SettingsMenu settings={settings} onChange={setSetting} />}
+        />
 
-          <div className="ml-2 flex items-center gap-1.5">
-            <Badge variant="outline" className="gap-1.5 font-normal text-muted-foreground">
-              <span className={cn("size-1.5 rounded-full", connDot)} />
-              {connection}
-            </Badge>
-            <Badge variant="outline" className="gap-1.5 font-normal text-muted-foreground">
-              <span className={cn("size-1.5 rounded-full", model.mode === "live" ? "bg-primary" : "bg-muted-foreground/60")} />
-              {model.mode === "unknown" ? "agent pending" : model.mode}
-            </Badge>
-            {lowBattery ? (
-              <Badge variant="destructive" className="font-normal">
-                low battery
-              </Badge>
-            ) : null}
-            {linkLost ? (
-              <Badge variant="destructive" className="gap-1 font-semibold tracking-wide">
-                <WifiOff />
-                LINK LOST
-              </Badge>
-            ) : null}
-            {operatorHold ? (
-              <Badge variant="outline" className="gap-1 border-warning/60 font-normal text-warning">
-                <Hand />
-                AI paused
-              </Badge>
-            ) : null}
-          </div>
-
-          <div className="ml-auto flex items-center gap-3">
-            {/* On narrow screens the side panel is below the fold: keep a STOP in reach. */}
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleStop}
-              aria-label="STOP — hover in place (header)"
-              className="font-bold tracking-wider text-white lg:hidden dark:bg-destructive"
-            >
-              <OctagonX />
-              STOP
-            </Button>
-            <div className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted-foreground max-sm:hidden">
-              <span className="text-muted-foreground/60">T+</span>
-              {missionClock}
-            </div>
-            <SettingsMenu settings={settings} onChange={setSetting} />
-          </div>
-        </header>
-
-        {/* Body */}
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden">
-          <main className="flex min-h-0 flex-col gap-4 p-4">
-            <SafetyBanners linkLost={linkLost} operatorHold={operatorHold} onResume={handleResume} />
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 pb-24 lg:grid-cols-[minmax(0,1fr)_372px] lg:grid-rows-[auto_minmax(0,1fr)_minmax(0,220px)] lg:pb-3 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)_372px] xl:grid-rows-[auto_minmax(0,1fr)]">
+          {/* Centre: what the drone sees, and what you tell it. */}
+          <main className="flex min-h-0 min-w-0 flex-col gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-1 xl:col-start-2">
+            <SafetyBanners operatorHold={operatorHold} onResume={handleResume} />
             <VideoStage
               frameSrc={model.frameSrc}
               videoStatus={videoStatus}
               cameraOn={settings.camera}
               fps={settings.showFps ? fps : null}
               latencyMs={settings.showLatency ? latencyMs : null}
+              linkLost={linkLost}
+              showHud={settings.hud}
+              telemetry={{ heading, height, speed, x: position.x, y: position.y, z: position.z, flying: isFlying }}
             />
-            <TelemetryStrip state={model.state} />
+            <CommandDeck
+              onSend={sendCommand}
+              onMicStart={startMic}
+              onMicStop={stopMic}
+              micActive={micActive}
+              connected={connected}
+              awaitingReply={awaitingSince !== null}
+              voiceEnabled={settings.voice}
+              mode={model.mode}
+            />
           </main>
 
-          <aside className="flex min-h-0 flex-col gap-4 border-t p-4 lg:border-t-0 lg:border-l">
-            <section aria-label="Safety controls" className="shrink-0 rounded-xl border bg-card p-3">
+          {/* Right rail: safety first, then hands-on flying. Never scrolls on desktop. */}
+          <aside
+            aria-label="Flight systems"
+            className="flex min-h-0 flex-col gap-3 lg:col-start-2 lg:row-start-1 lg:overflow-y-auto xl:col-start-3 xl:row-span-2 xl:overflow-visible [scrollbar-width:thin]"
+          >
+            <Panel title="Safety" icon={ShieldAlert} aside={<ConsoleState connected={connected} />}>
               <EmergencyControls onOperator={sendOperatorAction} connected={connected} />
-            </section>
-
-            <Collapsible defaultOpen className="shrink-0 overflow-hidden rounded-xl border bg-card">
-              <CollapsibleTrigger className="group flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-accent/40">
-                <span className="text-sm font-semibold">Flight Controls</span>
-                <span className="ml-auto font-mono text-xs text-muted-foreground">{connected ? "ready" : "offline"}</span>
-                <ChevronDown className="size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="px-4 pb-4">
-                  <FlightControls onOperator={sendOperatorAction} onCommand={sendCommand} />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Card className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden py-0 max-lg:min-h-[480px]">
-              <Tabs defaultValue="chat" className="flex min-h-0 flex-1 flex-col gap-0">
-                <div className="p-3 pb-0">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="chat">Chat</TabsTrigger>
-                    <TabsTrigger value="systems">Systems</TabsTrigger>
-                    <TabsTrigger value="traces">Traces</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent value="chat" className="mt-0 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <ConversationPanel
-                    messages={model.messages}
-                    onSend={sendCommand}
-                    onMicStart={startMic}
-                    onMicStop={stopMic}
-                    micActive={micActive}
-                    connected={connected}
-                    voiceEnabled={settings.voice}
-                  />
-                </TabsContent>
-
-                <TabsContent value="systems" className="mt-0 min-h-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <SystemPanels snapshot={snapshot} micActive={micActive} />
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="traces" className="mt-0 min-h-0 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <TracePanel traces={model.traces} tools={model.tools} />
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </Card>
+            </Panel>
+            <Panel title="Flight Controls" icon={Gamepad2} aside={<span className="font-mono text-[10px] text-muted-foreground">direct · no AI</span>}>
+              <FlightControls onOperator={sendOperatorAction} onCommand={sendCommand} flying={isFlying} battery={battery} />
+            </Panel>
+            <Panel
+              title={isFlying ? "Flight checks" : "Pre-flight"}
+              icon={ClipboardCheck}
+              aside={<VerdictBadge verdict={preflightVerdict(checks)} />}
+              className="min-h-0 shrink"
+              bodyClassName="min-h-0 overflow-y-auto py-1"
+            >
+              <PreflightList checks={checks} />
+            </Panel>
           </aside>
+
+          {/* Where it is: above the log on wide screens, under the rail otherwise. */}
+          <Panel
+            title="Navigation"
+            icon={Compass}
+            aside={<span className="font-mono text-[10px] text-muted-foreground">↑ = takeoff hdg</span>}
+            className="min-h-0 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:overflow-y-auto xl:col-start-1 xl:row-span-1 xl:row-start-1 xl:overflow-visible"
+          >
+            <NavigationPanel x={position.x} y={position.y} heading={heading} height={height} trail={trail} flying={isFlying} />
+          </Panel>
+
+          {/* Mission log: left column on wide screens, under the camera otherwise. */}
+          <section
+            aria-label="Mission record"
+            className="panel flex min-h-0 flex-col overflow-hidden max-lg:h-[560px] lg:col-start-1 lg:row-start-3 xl:col-start-1 xl:row-start-2"
+          >
+            <Tabs defaultValue="log" className="flex min-h-0 flex-1 flex-col gap-0">
+              <div className="flex h-11 shrink-0 items-center border-b px-2">
+                <TabsList className="h-8 w-full bg-sunken">
+                  <TabsTrigger value="log" className="text-xs">
+                    <ScanLine />
+                    Log
+                  </TabsTrigger>
+                  <TabsTrigger value="traces" className="text-xs">
+                    <Activity />
+                    Traces
+                  </TabsTrigger>
+                  <TabsTrigger value="systems" className="text-xs">
+                    <Crosshair />
+                    Systems
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="log" className="mt-0 min-h-0 data-[state=active]:flex data-[state=active]:flex-1 data-[state=active]:flex-col">
+                <MissionLog messages={model.messages} tools={model.tools} />
+              </TabsContent>
+              <TabsContent value="traces" className="mt-0 min-h-0 flex-1 overflow-y-auto">
+                <TracePanel traces={model.traces} />
+              </TabsContent>
+              <TabsContent value="systems" className="mt-0 min-h-0 flex-1 overflow-y-auto">
+                <SystemPanels snapshot={snapshot} micActive={micActive} />
+              </TabsContent>
+            </Tabs>
+          </section>
         </div>
+
+        <QuickSafetyBar onOperator={sendOperatorAction} />
         <SafetyAlerts alerts={model.alerts} onDismiss={handleDismissAlert} />
       </div>
     </TooltipProvider>
+  );
+}
+
+function ConsoleState({ connected }: { connected: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+      <OctagonX className={connected ? "size-3 text-success" : "size-3 text-destructive"} />
+      {connected ? "armed · reaches drone" : "offline"}
+    </span>
   );
 }
 
@@ -523,6 +536,7 @@ function SettingsMenu({
 }) {
   const rows: Array<{ key: keyof Settings; label: string; hint: string; icon: LucideIcon }> = [
     { key: "camera", label: "Camera feed", hint: "Live video stream", icon: Camera },
+    { key: "hud", label: "Flight HUD", hint: "Heading, altitude, reticle", icon: Crosshair },
     { key: "voice", label: "Voice input", hint: "Push-to-talk mic", icon: Mic },
     { key: "showLatency", label: "Latency", hint: "Model response time", icon: Gauge },
     { key: "showFps", label: "FPS", hint: "Feed frame rate", icon: Activity }
@@ -538,7 +552,7 @@ function SettingsMenu({
       <PopoverContent align="end" className="w-72">
         <div className="space-y-0.5">
           <p className="text-sm font-medium">Console settings</p>
-          <p className="text-xs text-muted-foreground">Toggle inputs and on-screen telemetry.</p>
+          <p className="text-xs text-muted-foreground">Toggle inputs and on-screen instruments.</p>
         </div>
         <Separator className="my-3" />
         <div className="space-y-3">
@@ -551,11 +565,7 @@ function SettingsMenu({
                   <span className="text-xs font-normal text-muted-foreground">{hint}</span>
                 </span>
               </Label>
-              <Switch
-                id={`set-${key}`}
-                checked={settings[key]}
-                onCheckedChange={(value) => onChange(key, value)}
-              />
+              <Switch id={`set-${key}`} checked={settings[key]} onCheckedChange={(value) => onChange(key, value)} />
             </div>
           ))}
         </div>

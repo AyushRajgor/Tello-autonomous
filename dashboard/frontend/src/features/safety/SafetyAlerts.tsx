@@ -1,16 +1,15 @@
 import { Info, OctagonAlert, TriangleAlert, X } from "lucide-react";
 import * as React from "react";
 
-import { Button } from "@/components/ui/button";
 import type { SafetyAlert } from "@/lib/dashboard-state";
 import { cn } from "@/lib/utils";
 
 const AUTO_DISMISS_MS = { info: 6000, warning: 12000 } as const;
 
 const levelStyle = {
-  critical: "border-destructive bg-destructive text-white dark:bg-destructive/90",
-  warning: "border-warning/60 bg-card text-foreground",
-  info: "border-border bg-card text-foreground"
+  critical: "border-destructive bg-destructive text-white shadow-destructive/30",
+  warning: "border-warning/60 bg-popover text-foreground",
+  info: "border-border bg-popover text-foreground"
 } as const;
 
 const levelIcon = {
@@ -20,13 +19,13 @@ const levelIcon = {
 } as const;
 
 /**
- * Toast stack for safety events. Critical alerts stay until dismissed.
- * Anchored bottom-left so it can never cover the STOP / Land controls
- * (side panel on desktop, header button on narrow screens).
+ * Toast stack for safety events, centred over the camera view. Critical alerts
+ * stay until dismissed. It never overlaps the STOP / Land controls (right rail
+ * on desktop, bottom bar on phones).
  */
 export function SafetyAlerts({ alerts, onDismiss }: { alerts: SafetyAlert[]; onDismiss: (id: string) => void }) {
   return (
-    <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col-reverse items-stretch gap-2 sm:right-auto sm:w-96">
+    <div className="pointer-events-none fixed inset-x-3 top-16 z-50 mx-auto flex max-w-[440px] flex-col items-stretch gap-2 lg:right-[400px]">
       {alerts.map((alert) => (
         <AlertToast key={alert.id} alert={alert} onDismiss={onDismiss} />
       ))}
@@ -50,26 +49,28 @@ function AlertToast({ alert, onDismiss }: { alert: SafetyAlert; onDismiss: (id: 
     <div
       role={critical ? "alert" : "status"}
       className={cn(
-        "pointer-events-auto flex items-start gap-3 rounded-lg border px-3 py-2.5 shadow-lg animate-in fade-in slide-in-from-bottom-2",
+        "pointer-events-auto flex items-start gap-3 overflow-hidden rounded-xl border px-3.5 py-3 shadow-2xl animate-in fade-in slide-in-from-top-2",
         levelStyle[alert.level]
       )}
     >
-      <Icon className={cn("mt-0.5 size-4 shrink-0", alert.level === "warning" && "text-warning")} />
+      <Icon className={cn("mt-0.5 size-5 shrink-0", alert.level === "warning" && "text-warning")} />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold tracking-wide uppercase opacity-90">
+        <p className="font-mono text-[10px] font-semibold tracking-[0.16em] uppercase opacity-85">
           {critical ? "Critical" : alert.level === "warning" ? "Warning" : "Notice"}
         </p>
-        <p className="text-sm text-pretty wrap-break-word">{alert.message}</p>
+        <p className="mt-0.5 text-sm text-pretty wrap-break-word">{alert.message}</p>
       </div>
-      <Button
-        variant="ghost"
-        size="icon-xs"
+      <button
+        type="button"
         aria-label="Dismiss alert"
         onClick={() => onDismiss(alert.id)}
-        className={cn("shrink-0", critical && "text-white hover:bg-white/15 hover:text-white")}
+        className={cn(
+          "grid size-6 shrink-0 place-items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          critical ? "hover:bg-white/15" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+        )}
       >
-        <X />
-      </Button>
+        <X className="size-3.5" />
+      </button>
     </div>
   );
 }

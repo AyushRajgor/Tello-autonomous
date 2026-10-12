@@ -205,13 +205,22 @@ flowchart LR
 
 ### What you see on load
 
-- **Header**: connection badge, mode badge (`live` / `legacy`), `low battery`, `LINK LOST` and `AI paused` badges when they apply, mission clock, settings (camera feed, voice input, latency and FPS overlays). On narrow screens a STOP button stays in the header.
-- **Main area**: banners for LINK LOST and "AI paused by operator" (with **Resume AI**), the video stage (drone stream, webcam, or "no video"), and a telemetry strip.
-- **Side panel**:
-  - **Safety controls**: a large **STOP** (Space), **Land** (Esc), and **E-STOP**, which needs a second "Cut motors" click within 5 s.
-  - **Flight controls**: Takeoff, 50 cm moves (forward/back/left/right), 90° turns, Flip forward, and **Observe** (asks the AI to describe the view without moving; it does not lift a STOP). Everything except Observe goes straight to the drone, with safety limits still applied. One manual command at a time: pressing again while the previous one runs shows "Drone is busy with the previous manual command".
-  - **Tabs**: Chat, Systems, Traces.
-- **Safety toasts** (bottom left) for watchdog events. Critical ones stay until dismissed.
+The dashboard is a "flight deck": three columns on wide screens (≥1280 px), two on laptops, one stacked column on phones.
+
+- **Top bar**: console socket, agent route (Gemini Live / legacy loop) and drone state (grounded / airborne / link lost), an `AI paused` pill when it applies, time airborne (`T+`, from the drone's flight duration), a battery gauge, and settings (camera feed, flight HUD, voice input, latency and FPS overlays).
+- **Centre**:
+  - The "AI paused by operator" banner (with **Resume AI**) when it applies.
+  - The **camera view** with a HUD over it: heading tape, altitude ladder with the 2 m ceiling and 20 cm floor, reticle, position and ground speed. **LINK LOST** covers the camera view with hazard stripes.
+  - The **command line** for the AI: text, push-to-talk mic, and suggestions that fill the field without sending. While the AI works on a command it shows "AI working…".
+- **Right rail** (never scrolls on desktop):
+  - **Safety**: a large **STOP** (Space), **Land** (Esc), and **E-STOP**, which needs a second "Cut motors" click within 5 s.
+  - **Flight controls**: two RC-style sticks. The left one climbs, descends and turns; the right one moves forward, back, left and right. A step selector (20 / 50 / 100 cm, 45 / 90 / 180°) sets how far each nudge goes. Below them are Takeoff (disabled while airborne), Flip forward, and **Observe**, which asks the AI to describe the view without moving and does not lift a STOP. Everything except Observe goes straight to the drone, with safety limits still applied. One manual command runs at a time: pressing again while the previous one runs shows "Drone is busy with the previous manual command".
+  - **Pre-flight / flight checks**: console, drone link, battery, video and AI agent, with a GO / NO-GO verdict.
+- **Left column**:
+  - **Navigation**: a top-down map centred on the takeoff point, with "up" as the takeoff heading. It shows the flight trail, the drone's heading, range rings, and the 8 m geofence. It zooms automatically from ±3 m out to the whole fence. Beside it are range, altitude, heading and the bearing home.
+  - **Log / Traces / Systems**: the mission log puts your commands, AI replies, AI tool calls (expand one to see its result), operator actions and safety events on one timeline.
+- **Phones**: STOP and Land are pinned to the bottom of the screen.
+- **Safety toasts** appear over the camera view. Critical ones stay until dismissed.
 
 ### Keyboard shortcuts
 

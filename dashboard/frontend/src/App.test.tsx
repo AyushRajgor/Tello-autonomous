@@ -60,14 +60,69 @@ describe("dashboard app", () => {
     window.history.replaceState({}, "", "/");
   });
 
-  it("renders the mission console shell", () => {
+  it("renders the flight deck shell", () => {
     render(<App />);
 
-    expect(screen.getByText("TELLOAI")).toBeInTheDocument();
-    expect(screen.getByText("Mission View")).toBeInTheDocument();
-    expect(screen.getByText("Flight Controls")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /chat/i })).toBeInTheDocument();
+    expect(screen.getAllByText("TELLOAI").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: "Mission view" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Flight Controls" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /log/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /traces/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /systems/i })).toBeInTheDocument();
+  });
+
+  it("puts AI replies, tool calls and operator actions on one mission log", () => {
+    render(<App />);
+    serverPush({ type: "chat", role: "user", text: "look left" });
+    serverPush({ type: "tool", name: "rotate", status: "ok", args: { degrees: -90 }, result: { success: true } });
+    serverPush({ type: "chat", role: "assistant", text: "Turned left, I see a door." });
+
+    expect(screen.getByText("look left")).toBeInTheDocument();
+    expect(screen.getByText("rotate(degrees: -90)")).toBeInTheDocument();
+    expect(screen.getByText("Turned left, I see a door.")).toBeInTheDocument();
+  });
+
+  it("shows the AI as working until it replies", () => {
+    render(<App />);
+    act(() => mockSockets[0].onopen?.());
+
+    fireEvent.change(screen.getByLabelText("Command input"), { target: { value: "scan the room" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(screen.getByText(/AI working/i)).toBeInTheDocument();
+
+    serverPush({ type: "chat", role: "assistant", text: "Scanning." });
+    expect(screen.queryByText(/AI working/i)).not.toBeInTheDocument();
+  });
+
+  it("suggestions fill the command line instead of sending", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "What do you see?" }));
+    expect(screen.getByLabelText("Command input")).toHaveValue("What do you see?");
+    expect(sentPayloads()).toEqual([]);
+  });
+
+  it("the step selector changes the distance the sticks send", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("radio", { name: "100" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move up 100 cm" }));
+    expect(sentPayloads()).toEqual([{ type: "operator", action: "move", args: { direction: "up", cm: 100 } }]);
+  });
+
+  it("disables Takeoff while airborne", () => {
+    render(<App />);
+    serverPush({ type: "state", data: { is_flying: true, link_ok: true } });
+    expect(screen.getByRole("button", { name: "Airborne" })).toBeDisabled();
+  });
+
+  it("the phone quick bar sends STOP and Land directly", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Quick STOP — hover in place" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick land" }));
+    expect(sentPayloads()).toEqual([
+      { type: "operator", action: "hover" },
+      { type: "operator", action: "land" }
+    ]);
   });
 
   it("clears stale latency when a new text command starts", async () => {

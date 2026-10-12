@@ -159,7 +159,7 @@ def run_dashboard_mode(toolkit: TelloToolkit, tracer, use_live: bool = True):
 
     By default routes chat through the Live API session for low-latency responses
     and continuous video streaming. Use --legacy-agent to fall back to the older
-    Gemini 3 Flash text agent.
+    Gemini 3.5 Flash text agent.
     """
     import dashboard.server as dash
 
@@ -175,7 +175,7 @@ def run_dashboard_mode(toolkit: TelloToolkit, tracer, use_live: bool = True):
     else:
         dash.agent = TelloAgent(toolkit, tracer)
         dash.live_agent = None
-        logger.info("Dashboard will use legacy text agent (Gemini 3 Flash)")
+        logger.info("Dashboard will use legacy text agent (Gemini 3.5 Flash)")
 
     host = DASHBOARD["host"]
     port = DASHBOARD["port"]

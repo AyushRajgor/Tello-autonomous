@@ -150,11 +150,19 @@ class LiveAgent:
         # playback lags the API by the prebuffer amount plus OS latency.
         self._echo_guard_ms: int = 500
 
+        # Latency tracking: time from user turn end (text send, push-to-talk
+        # release, or finalized VAD transcription) to the model's first output.
+        self._turn_user_ts: float = 0.0
+        self._last_user_audio_ts: float = 0.0
+        self._latency_emitted: bool = False
+        self._latency_start_locked: bool = False
+
         # Callbacks
         self._on_audio: Optional[AudioCallback] = None
         self._on_text: Optional[TextCallback] = None
         self._on_tool: Optional[ToolCallback] = None
         self._on_interrupt: Optional[Callable] = None
+        self._on_metric: Optional[Callable] = None
 
     # ── Callback registration ──
     def on_audio(self, cb: AudioCallback):
@@ -169,6 +177,39 @@ class LiveAgent:
 
     def on_interrupt(self, cb: Callable):
         self._on_interrupt = cb
+
+    def on_metric(self, cb: Callable):
+        """cb(name, value) for lightweight telemetry (e.g. voice latency)."""
+        self._on_metric = cb
+
+    def _start_latency_timer(self, lock: bool):
+        self._turn_user_ts = time.perf_counter()
+        self._latency_emitted = False
+        self._latency_start_locked = lock
+
+    def mark_user_turn_end(self):
+        """Start response latency timing when the user has finished input."""
+        if self._model_speaking:
+            return
+        self._start_latency_timer(lock=True)
+
+    def _mark_vad_turn_end(self):
+        if not self._model_speaking and not self._latency_emitted:
+            self._start_latency_timer(lock=True)
+
+    def _enum_value(self, value) -> str:
+        return str(getattr(value, "value", value))
+
+    async def _emit_response_latency_once(self):
+        if self._latency_emitted:
+            return
+        start_ts = self._turn_user_ts or self._last_user_audio_ts
+        if not start_ts:
+            return
+        latency_ms = round((time.perf_counter() - start_ts) * 1000)
+        self._latency_emitted = True
+        if self._on_metric:
+            await _maybe_await(self._on_metric("voice_latency_ms", latency_ms))
 
     # ── Session lifecycle ──
     async def start(self):
@@ -246,6 +287,7 @@ class LiveAgent:
         if self._session is None:
             return
         try:
+            self._start_latency_timer(lock=True)
             await self._session.send_realtime_input(text=text)
             if self._on_text:
                 await _maybe_await(self._on_text("user", text))
@@ -273,6 +315,8 @@ class LiveAgent:
                     mime_type=f"audio/pcm;rate={LIVE['input_sample_rate']}",
                 )
             )
+            if not self._model_speaking and not self._latency_emitted:
+                self._last_user_audio_ts = time.perf_counter()
         except Exception as e:
             logger.debug(f"send_audio error: {e}")
 
@@ -319,6 +363,18 @@ class LiveAgent:
                 logger.error(f"Live receive loop error: {e}")
 
     async def _handle_response(self, response):
+        voice_activity = getattr(response, "voice_activity", None)
+        if voice_activity:
+            activity_type = self._enum_value(getattr(voice_activity, "voice_activity_type", ""))
+            if activity_type == "ACTIVITY_END":
+                self._mark_vad_turn_end()
+
+        vad_signal = getattr(response, "voice_activity_detection_signal", None)
+        if vad_signal:
+            signal_type = self._enum_value(getattr(vad_signal, "vad_signal_type", ""))
+            if signal_type == "VAD_SIGNAL_TYPE_EOS":
+                self._mark_vad_turn_end()
+
         # Tool calls
         tc = getattr(response, "tool_call", None)
         if tc:
@@ -336,6 +392,8 @@ class LiveAgent:
             for part in model_turn.parts:
                 inline = getattr(part, "inline_data", None)
                 if inline and inline.data:
+                    # First audio chunk of the reply -> report response latency.
+                    await self._emit_response_latency_once()
                     # Half-duplex gate: model is actively speaking, ignore mic
                     self._model_speaking = True
                     self._last_model_audio_ts = time.time()
@@ -346,10 +404,18 @@ class LiveAgent:
         in_trans = getattr(sc, "input_transcription", None)
         if in_trans and getattr(in_trans, "text", None):
             self._input_transcript_buf += in_trans.text
+            if (
+                getattr(in_trans, "finished", False)
+                and not self._model_speaking
+                and not self._latency_emitted
+                and not self._latency_start_locked
+            ):
+                self._start_latency_timer(lock=True)
 
         # Model transcription (what the model said, as text)
         out_trans = getattr(sc, "output_transcription", None)
         if out_trans and getattr(out_trans, "text", None):
+            await self._emit_response_latency_once()
             self._output_transcript_buf += out_trans.text
 
         # Interruption (user spoke over the model). With the half-duplex gate
@@ -367,6 +433,10 @@ class LiveAgent:
         # Turn boundary — flush transcript buffers to callbacks
         if getattr(sc, "turn_complete", False):
             self._model_speaking = False
+            self._latency_emitted = False
+            self._latency_start_locked = False
+            self._turn_user_ts = 0.0
+            self._last_user_audio_ts = 0.0
             if self._input_transcript_buf.strip() and self._on_text:
                 await _maybe_await(self._on_text("user", self._input_transcript_buf.strip()))
             if self._output_transcript_buf.strip() and self._on_text:

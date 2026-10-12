@@ -10,16 +10,16 @@ from core.tracing import Span, Trace, TraceManager
 import vision.llm_vision as vision
 
 def test_cost_calculator():
-    # gemini-3-flash-preview: 0.50 in, 1.50 out, 1.25/M thinking
-    cost = calculate_cost("gemini-3-flash-preview", 2_000_000, 1_000_000, 0)
-    assert cost == 2.50 # (2 * 0.5 + 1 * 1.5)
+    # gemini-3.5-flash: 1.50/M input, 9.00/M output
+    cost = calculate_cost("gemini-3.5-flash", 2_000_000, 1_000_000, 0)
+    assert cost == 12.00  # (2 * 1.5 + 1 * 9.0)
 
     cost_lite = calculate_cost("gemini-3.1-flash-lite", 1_000_000, 1_000_000, 0)
-    assert cost_lite == 0.75
+    assert cost_lite == 1.75
 
     # with thinking tokens
-    cost_think = calculate_cost("gemini-3-flash-preview", 1_000_000, 0, 1_000_000)
-    assert cost_think == 1.75 # 0.5 + 1.25
+    cost_think = calculate_cost("gemini-3.5-flash", 1_000_000, 0, 1_000_000)
+    assert cost_think == 10.50  # 1.5 + 9.0
 
 def test_trace_manager_lifecycle():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -35,7 +35,7 @@ def test_trace_manager_lifecycle():
             span_id="s123",
             trace_id=trace_id,
             span_type="llm_call",
-            name="gemini-3-flash-preview",
+            name="gemini-3.5-flash",
             start_time=time.time(),
             end_time=time.time() + 1.5,
             duration_ms=1500,

@@ -11,20 +11,38 @@ This class is what the LLM calls via function calling.
 """
 
 import base64
-import io
 import logging
 import time
 from typing import Optional
 
 import cv2
-
-from PIL import Image
+import numpy as np
 
 from config import SAFETY, VISION
 from core.state import DroneState
 from core.safety import SafetySystem
 
 logger = logging.getLogger(__name__)
+
+
+def _encode_frame_as_jpeg_b64(frame, input_rgb: bool = False) -> str:
+    """Resize and JPEG-encode a camera frame as base64."""
+    resized = cv2.resize(
+        frame,
+        (VISION["frame_width"], VISION["frame_height"]),
+        interpolation=cv2.INTER_AREA,
+    )
+    if input_rgb:
+        resized = cv2.cvtColor(resized, cv2.COLOR_RGB2BGR)
+
+    ok, encoded = cv2.imencode(
+        ".jpg",
+        resized,
+        [int(cv2.IMWRITE_JPEG_QUALITY), int(VISION["jpeg_quality"])],
+    )
+    if not ok:
+        raise ValueError("Failed to encode frame as JPEG")
+    return base64.b64encode(encoded).decode("utf-8")
 
 
 class TelloToolkit:
@@ -181,21 +199,14 @@ class TelloToolkit:
             if self._webcam is not None and self._webcam.isOpened():
                 ret, frame = self._webcam.read()
                 if ret:
-                    # Convert BGR (OpenCV) -> RGB, resize, encode
-                    img = Image.fromarray(frame[:, :, ::-1])
-                    img = img.resize((VISION["frame_width"], VISION["frame_height"]))
-                    buffer = io.BytesIO()
-                    img.save(buffer, format="JPEG", quality=VISION["jpeg_quality"])
-                    b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                    b64 = _encode_frame_as_jpeg_b64(frame)
                     return {"success": True, "image_base64": b64, "source": "webcam"}
                 else:
                     logger.warning("Webcam read failed, returning placeholder")
 
             # Fallback: gray placeholder
-            img = Image.new("RGB", (VISION["frame_width"], VISION["frame_height"]), color=(100, 100, 100))
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG", quality=VISION["jpeg_quality"])
-            b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            frame = np.full((VISION["frame_height"], VISION["frame_width"], 3), 100, dtype=np.uint8)
+            b64 = _encode_frame_as_jpeg_b64(frame)
             return {"success": True, "image_base64": b64, "note": "Simulated frame"}
 
         try:
@@ -206,13 +217,8 @@ class TelloToolkit:
             if frame is None:
                 return {"success": False, "error": "No frame available"}
 
-            # djitellopy (PyAV backend) returns frames in RGB already — no channel swap.
-            img = Image.fromarray(frame)
-            img = img.resize((VISION["frame_width"], VISION["frame_height"]))
-
-            buffer = io.BytesIO()
-            img.save(buffer, format="JPEG", quality=VISION["jpeg_quality"])
-            b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            # djitellopy (PyAV backend) returns RGB; OpenCV JPEG encoding expects BGR.
+            b64 = _encode_frame_as_jpeg_b64(frame, input_rgb=True)
 
             self.state.log_action("get_frame", {}, True)
             return {"success": True, "image_base64": b64}

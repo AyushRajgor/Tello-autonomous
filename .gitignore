@@ -4,6 +4,12 @@ __pycache__/
 .pytest_cache/
 venv
 logs/
+dashboard/frontend/node_modules/
+dashboard/frontend/.vite/
+dashboard/frontend/*.tsbuildinfo
+dashboard/frontend/vite.config.js
+dashboard/frontend/vite.config.d.ts
+dashboard/static_dist/
 
 # Personal tool caches — not meant to be shared across machines
 .agent/

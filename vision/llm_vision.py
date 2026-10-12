@@ -3,7 +3,7 @@ LLM Vision
 
 Sends drone camera frames to Gemini models for analysis.
 Routes to different models based on task complexity:
-- gemini-3-flash-preview (reasoning) for scene description, planning
+- gemini-3.5-flash (reasoning) for scene description, planning
 - gemini-3.1-flash-lite (quick) for simple yes/no checks
 """
 
@@ -45,7 +45,7 @@ async def analyze_frame(
     Args:
         image_base64: Base64 encoded JPEG from get_frame()
         prompt: What to analyze ("describe the scene", "is path clear?", etc.)
-        mode: "reasoning" (Gemini 3 Flash) or "quick" (3.1 Flash-Lite)
+        mode: "reasoning" (Gemini 3.5 Flash) or "quick" (3.1 Flash-Lite)
         context: Optional additional context (drone state, search target, etc.)
 
     Returns:
@@ -187,7 +187,7 @@ async def analyze_frame(
 
 
 async def describe_scene(image_base64: str, drone_context: str = "", trace_id: Optional[str] = None) -> str:
-    """Full scene description using Gemini 3 Flash."""
+    """Full scene description using Gemini 3.5 Flash."""
     return await analyze_frame(
         image_base64=image_base64,
         prompt=(

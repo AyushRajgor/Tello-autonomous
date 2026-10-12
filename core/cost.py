@@ -2,31 +2,27 @@
 Cost Calculator for LLM calls based on tokens.
 """
 
-# Pricing table (per million tokens, March 2026)
+# Pricing table (per million tokens, June 2026).
+# Output rates include thinking tokens for current Gemini models.
 MODEL_PRICING = {
-    "gemini-3-flash-preview": {
-        "input": 0.50,    # $/M input tokens
-        "output": 1.50,   # $/M output tokens
-        "thinking": 1.25, # $/M thinking tokens (if separate)
+    "gemini-3.5-flash": {
+        "input": 1.50,
+        "output": 9.00,
+        "thinking": 9.00,
     },
     "gemini-3.1-flash-lite": {
         "input": 0.25,
-        "output": 0.50,
-        "thinking": 0.00,
-    },
-    "gemini-2.5-flash-native-audio": {
-        "input": 0.50,
         "output": 1.50,
-        "thinking": 0.00,
+        "thinking": 1.50,
     },
     "gemini-3.1-flash-live-preview": {
-        "input": 0.30,
-        "output": 1.20,
+        "input": 0.75,
+        "output": 4.50,
         "thinking": 0.00,
     },
-    "gemini-robotics-er-1.5": {
-        "input": 0.50,
-        "output": 1.50,
+    "gemini-robotics-er-1.6-preview": {
+        "input": 1.00,
+        "output": 5.00,
         "thinking": 0.00,
     },
 }

@@ -22,7 +22,7 @@ An AI agent that controls a DJI Tello drone through natural voice conversation. 
                        ▼
 ┌─────────────────────────────────────────────────┐
 │          VOICE LAYER (Gemini Live API)          │
-│  Model: gemini-2.5-flash-native-audio           │
+│  Model: gemini-3.1-flash-live-preview           │
 │  - Real-time audio in/out via WebSocket         │
 │  - Function calling for drone actions           │
 │  - Maintains conversation context               │
@@ -44,7 +44,7 @@ An AI agent that controls a DJI Tello drone through natural voice conversation. 
 │  VISION LAYER   │  │     DRONE CONTROL LAYER   │
 │                 │  │                           │
 │ Scene analysis: │  │  TelloToolkit class       │
-│  Gemini 3 Flash │  │  wrapping djitellopy      │
+│ Gemini 3.5 Flash│  │  wrapping djitellopy      │
 │  (on demand)    │  │                           │
 │                 │  │  All actions exposed as   │
 │ Quick checks:   │  │  callable functions with  │
@@ -53,7 +53,7 @@ An AI agent that controls a DJI Tello drone through natural voice conversation. 
 │                 │  │  UDP over WiFi to Tello   │
 │ Spatial:        │  │                           │
 │  Robotics-ER    │  │                           │
-│  1.5 (optional) │  │                           │
+│  1.6 (optional) │  │                           │
 └─────────────────┘  └───────────────────────────┘
 ```
 
@@ -61,23 +61,23 @@ An AI agent that controls a DJI Tello drone through natural voice conversation. 
 
 ---
 
-## Models (as of March 2026)
+## Models (updated June 2026)
 
 | Role | Model | Model String | Why |
 |------|-------|-------------|-----|
-| **Voice (real-time)** | Gemini 2.5 Flash Native Audio | `gemini-2.5-flash-native-audio` | Stable Live API model, function calling, audio+video streaming, lowest latency for voice |
-| **Vision (reasoning)** | Gemini 3 Flash | `gemini-3-flash-preview` | Latest multimodal, best reasoning at Flash speed, 1M context, thinking levels, function calling |
-| **Vision (quick checks)** | Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite` | 2.5x faster than 2.5 Flash, $0.25/M input tokens, for simple yes/no frame checks |
-| **Spatial precision** | Gemini Robotics-ER 1.5 | `gemini-robotics-er-1.5` | 2D object pointing, precise coords — only when exact position needed |
+| **Voice (real-time)** | Gemini 3.1 Flash Live Preview | `gemini-3.1-flash-live-preview` | Live API model, function calling, audio+video streaming, lowest latency for voice |
+| **Vision (reasoning)** | Gemini 3.5 Flash | `gemini-3.5-flash` | Current Flash reasoning model for multimodal planning and scene understanding |
+| **Vision (quick checks)** | Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite` | Fast, cheaper model for simple yes/no frame checks |
+| **Spatial precision** | Gemini Robotics-ER 1.6 Preview | `gemini-robotics-er-1.6-preview` | 2D object pointing, precise coords — only when exact position needed |
 | **Voice fallback** | OpenAI gpt-realtime | `gpt-realtime` | Alternative if Gemini Live has issues |
 
 **Model routing strategy:**
-- Voice conversation → `gemini-2.5-flash-native-audio` (Live API, always on)
-- "What do you see?" / planning / complex reasoning → `gemini-3-flash-preview` (thinking_level: medium)
+- Voice conversation → `gemini-3.1-flash-live-preview` (Live API, always on)
+- "What do you see?" / planning / complex reasoning → `gemini-3.5-flash` (thinking_level: medium)
 - "Is path clear?" / quick yes/no → `gemini-3.1-flash-lite` (thinking_level: minimal, cheapest + fastest)
-- "Point at the TV precisely" → `gemini-robotics-er-1.5` (only when coordinates matter)
+- "Point at the TV precisely" → `gemini-robotics-er-1.6-preview` (only when coordinates matter)
 
-**Important Gemini 3 Flash note:** Gemini 3 uses thought signatures — encrypted tokens returned with responses that must be passed back in subsequent requests to maintain reasoning context. The agent must handle these in multi-turn function calling flows.
+**Important Gemini reasoning note:** Gemini reasoning models use thought signatures — encrypted tokens returned with responses that must be passed back in subsequent requests to maintain reasoning context. The agent must handle these in multi-turn function calling flows.
 
 ---
 
@@ -115,10 +115,10 @@ No predefined command list. "Take off and go forward a bit" just works.
 
 **2. Object Search ("Find X")**
 Core loop: `scan → reason → decide direction → move → scan again`
-Use `gemini-3.1-flash-lite` for quick "is this the target?" checks, `gemini-3-flash-preview` for planning next move.
+Use `gemini-3.1-flash-lite` for quick "is this the target?" checks, `gemini-3.5-flash` for planning next move.
 
 **3. Scene Description**
-"What do you see?" → capture frame → `gemini-3-flash-preview` → speak back.
+"What do you see?" → capture frame → `gemini-3.5-flash` → speak back.
 Supports follow-ups: "is there a laptop on that desk?"
 
 ### P1 — Should Build
@@ -140,11 +140,11 @@ Supports follow-ups: "is there a laptop on that desk?"
 |-----------|-----------|-------|
 | Language | Python 3.11+ | |
 | Drone SDK | djitellopy | UDP commands, video stream |
-| Voice | Gemini Live API | `gemini-2.5-flash-native-audio`, WebSocket |
+| Voice | Gemini Live API | `gemini-3.1-flash-live-preview`, WebSocket |
 | Voice fallback | OpenAI gpt-realtime | WebSocket/WebRTC |
-| Vision (reasoning) | Gemini 3 Flash | `gemini-3-flash-preview`, scene understanding + planning |
+| Vision (reasoning) | Gemini 3.5 Flash | `gemini-3.5-flash`, scene understanding + planning |
 | Vision (quick) | Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite`, fast frame checks |
-| Vision (spatial) | Gemini Robotics-ER 1.5 | `gemini-robotics-er-1.5`, precise 2D pointing |
+| Vision (spatial) | Gemini Robotics-ER 1.6 Preview | `gemini-robotics-er-1.6-preview`, precise 2D pointing |
 | Audio I/O | PyAudio or sounddevice | Mic capture + speaker output |
 | Web dashboard | FastAPI + WebSocket | Live video, chat log, telemetry |
 | Frontend | HTML/JS or React | Dashboard UI |
@@ -198,8 +198,8 @@ tello-ai-agent/
 │
 ├── vision/
 │   ├── frame_capture.py          # Camera stream → frame extraction → base64
-│   ├── llm_vision.py             # Frame → Gemini 3 Flash / 3.1 Flash-Lite analysis
-│   └── spatial.py                # Gemini Robotics-ER 1.5 (optional)
+│   ├── llm_vision.py             # Frame → Gemini 3.5 Flash / 3.1 Flash-Lite analysis
+│   └── spatial.py                # Gemini Robotics-ER 1.6 Preview (optional)
 │
 ├── voice/
 │   ├── gemini_live.py            # Gemini Live API WebSocket client
@@ -243,17 +243,17 @@ tello-ai-agent/
 
 ### Phase 1: Foundation (Week 1-2)
 Build `TelloToolkit` with JSON schemas, `safety.py`, text-based agent loop.
-Use `gemini-3-flash-preview` with function calling (text mode, not voice yet).
+Use `gemini-3.5-flash` with function calling (text mode, not voice yet).
 **Test:** Type "take off, go forward 1 meter, rotate 360, land" → drone executes.
 
 ### Phase 2: Vision (Week 3-4)
 Add frame capture pipeline. Implement `get_frame()` as a callable tool.
-Route to `gemini-3-flash-preview` (thinking: medium) for descriptions, `gemini-3.1-flash-lite` (thinking: minimal) for quick checks.
-Handle Gemini 3 thought signatures in multi-turn flows.
+Route to `gemini-3.5-flash` (thinking: medium) for descriptions, `gemini-3.1-flash-lite` (thinking: minimal) for quick checks.
+Handle Gemini thought signatures in multi-turn flows.
 **Test:** "What do you see?" returns accurate description. "Find the red cup" works in one room.
 
 ### Phase 3: Voice (Week 5-6)
-Replace text with Gemini Live API (`gemini-2.5-flash-native-audio`). Handle dual WiFi.
+Replace text with Gemini Live API (`gemini-3.1-flash-live-preview`). Handle dual WiFi.
 **Test:** Full voice conversation with drone — commands, questions, status updates.
 
 ### Phase 4: Exploration (Week 7-9)
@@ -318,4 +318,4 @@ talk to the user in real-time.
 3. Frame resolution: 720p or downscale to 360p?
 4. Dashboard: plain HTML/JS or React?
 5. Record sessions from day 1?
-6. Use `media_resolution` param on Gemini 3 Flash to control vision token cost?
+6. Use `media_resolution` param on Gemini 3.5 Flash to control vision token cost?

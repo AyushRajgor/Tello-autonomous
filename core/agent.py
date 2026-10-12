@@ -8,7 +8,7 @@ The main orchestration loop:
 4. Results fed back to LLM
 5. LLM responds to user
 
-Uses Gemini 3 Flash with function calling for the agent loop.
+Uses Gemini 3.5 Flash with function calling for the agent loop.
 Vision calls are routed through vision/llm_vision.py.
 """
 

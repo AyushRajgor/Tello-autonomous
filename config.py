@@ -13,24 +13,21 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-# ── Model Strings (April 2026) ──
+# ── Model Strings (June 2026) ──
 MODELS = {
-    # Real-time voice + vision via Live API WebSocket. Latest preview released
-    # March 26 2026 — streams audio + video + text, synchronous tool calls.
+    # Real-time voice + vision via Live API WebSocket.
     "live": "gemini-3.1-flash-live-preview",
-    # Legacy Live API model kept as a fallback if the 3.1 preview is down.
-    "voice_legacy": "gemini-2.5-flash-native-audio",
-    # Vision reasoning — still used by the non-Live text agent in core/agent.py.
-    "vision_reasoning": "gemini-3-flash-preview",
-    # Vision quick — fast yes/no checks, "is path clear?", cheap
+    # Main reasoning model for the non-Live text agent in core/agent.py.
+    "vision_reasoning": "gemini-3.5-flash",
+    # Fast yes/no checks, "is path clear?", cheap.
     "vision_quick": "gemini-3.1-flash-lite",
-    # Spatial precision — 2D object pointing, precise coordinates
-    "vision_spatial": "gemini-robotics-er-1.5",
+    # Spatial precision: 2D object pointing and embodied reasoning.
+    "vision_spatial": "gemini-robotics-er-1.6-preview",
     # OpenAI fallback (unused for now)
     "voice_fallback": "gpt-realtime",
 }
 
-# ── Thinking Levels (Gemini 3 Flash / 3.1 Flash-Lite) ──
+# ── Thinking Levels (Gemini 3.5 Flash / 3.1 Flash-Lite) ──
 THINKING = {
     "reasoning": "medium",   # For scene analysis, planning
     "quick": "minimal",      # For path-clear checks, simple yes/no
@@ -65,7 +62,7 @@ VISION = {
     "frame_width": 720,              # Downscale from 960 for speed
     "frame_height": 480,
     "jpeg_quality": 70,              # Balance quality vs token cost
-    "media_resolution": "medium",    # Gemini 3 Flash media_resolution param
+    "media_resolution": "medium",    # Gemini media_resolution param
 }
 
 # ── Live API (voice + video streaming) ──

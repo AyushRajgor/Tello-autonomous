@@ -17,7 +17,7 @@ python main.py --simulate     # Simulation (no drone hardware)
 python main.py --simulate --webcam --dashboard  # Simulation with laptop camera
 
 # Tests
-python -m pytest tests/ -v              # All tests (27 tests)
+python -m pytest tests/ -v              # All tests (35 tests)
 python -m pytest tests/test_toolkit.py -v  # Full suite
 python -m pytest tests/test_toolkit.py::TestSafety -v  # Single test class
 python -m pytest tests/test_toolkit.py::TestSafety::test_geofence -k "geofence"  # Single test
@@ -27,9 +27,14 @@ python scripts/network_check.py
 
 # Install
 pip install -r requirements.txt
+
+# Dashboard frontend (React/Vite) — required before running --dashboard
+cd dashboard/frontend && npm install && npm run build
+# Dev server (hot-reload, proxies to FastAPI on :8080)
+cd dashboard/frontend && npm run dev
 ```
 
-No linter or formatter is configured. No build step required.
+No linter or formatter is configured. Frontend build output (`dashboard/static_dist/`) is gitignored — run the build after cloning.
 
 ## Architecture
 
@@ -63,7 +68,7 @@ User input (text/voice/dashboard)
 |---|---|
 | `config.py` | All constants, model IDs, safety thresholds, tool schemas, env vars |
 | `core/toolkit.py` | Command execution: validate → execute → update state → return result dict |
-| `core/agent.py` | Multi-turn LLM loop with function calling (Gemini 3 Flash) |
+| `core/agent.py` | Multi-turn LLM loop with function calling (Gemini 3.5 Flash) |
 | `core/safety.py` | Pre-flight validation: geofence, altitude, battery, parameter bounds |
 | `core/state.py` | `DroneState` + `Position` dataclasses, position math, action logging |
 | `vision/llm_vision.py` | Frame analysis: `describe_scene`, `check_path_clear`, `search_for_object`, `find_doors_and_openings` |
@@ -73,7 +78,7 @@ User input (text/voice/dashboard)
 
 ### Vision Model Routing
 
-- **Reasoning tasks** (scene description, object search): `gemini-3-flash-preview` with `thinking=medium`
+- **Reasoning tasks** (scene description, object search): `gemini-3.5-flash` with `thinking=medium`
 - **Quick checks** (path clear): `gemini-3.1-flash-lite` with `thinking=minimal`
 - Model IDs and parameters are in `config.py`
 

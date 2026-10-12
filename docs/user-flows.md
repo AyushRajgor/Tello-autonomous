@@ -6,7 +6,7 @@ What the user actually does — and what happens visually and audibly — for ev
 
 | Command | Mode | Model path | Input | Output |
 |---|---|---|---|---|
-| `python main.py` | Text | Legacy (Gemini 3 Flash) | Keyboard | stdout |
+| `python main.py` | Text | Legacy (Gemini 3.5 Flash) | Keyboard | stdout |
 | `python main.py --voice` | Voice | Live | Microphone + keyboard | Aoede voice + stdout |
 | `python main.py --voice-text` | Voice-text | Live | Keyboard | Aoede voice + stdout |
 | `python main.py --dashboard` | Dashboard | Live (default) | Browser text + push-to-talk mic | Browser UI + host speakers |
@@ -61,7 +61,7 @@ sequenceDiagram
     T-->>U: TelloAI Agent — type 'quit' to exit
     U->>T: take off
     T->>Ag: process_message("take off")
-    Note right of Ag: Gemini 3 Flash + tools<br/>~3-6 s
+    Note right of Ag: Gemini 3.5 Flash + tools<br/>~3-6 s
     Ag-->>T: Taking off — battery 87%
     U->>T: what do you see?
     T->>Ag: process_message(...)

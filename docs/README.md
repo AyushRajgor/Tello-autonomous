@@ -11,7 +11,7 @@ Two agent paths coexist in the codebase:
 | Path | Model | When used | Latency |
 |---|---|---|---|
 | **Live** | `gemini-3.1-flash-live-preview` | `--voice`, `--voice-text`, `--dashboard` (default) | 0.5–1.5 s first token |
-| **Legacy** | `gemini-3-flash-preview` + `gemini-3.1-flash-lite` | `--dashboard --legacy-agent`, default text mode | 8–15 s per full turn |
+| **Legacy** | `gemini-3.5-flash` + `gemini-3.1-flash-lite` | `--dashboard --legacy-agent`, default text mode | 8–15 s per full turn |
 
 The Live path streams audio + drone video over a persistent WebSocket and handles perception inside the model. The legacy path makes separate API calls for planning, vision, and synthesis; it is slower but easier to trace span by span.
 

@@ -6,7 +6,7 @@ Run: python -m pytest tests/ -v
 
 import pytest
 import asyncio
-from core.toolkit import TelloToolkit
+from core.toolkit import TelloToolkit, _encode_frame_as_jpeg_b64
 from core.safety import SafetySystem
 from core.state import DroneState
 
@@ -74,6 +74,24 @@ class TestToolkit:
         result = flying_toolkit.get_frame()
         assert result["success"]
         assert "image_base64" in result
+
+    def test_fast_frame_encoding_preserves_rgb_input(self):
+        import base64
+        import io
+
+        import numpy as np
+        from PIL import Image
+
+        frame = np.zeros((4, 4, 3), dtype=np.uint8)
+        frame[:, :, 2] = 255  # blue in RGB
+
+        image_b64 = _encode_frame_as_jpeg_b64(frame, input_rgb=True)
+        img = Image.open(io.BytesIO(base64.b64decode(image_b64)))
+        red, green, blue = img.getpixel((0, 0))
+
+        assert img.size == (720, 480)
+        assert blue > 200
+        assert red < 80
 
     def test_get_battery(self, toolkit):
         result = toolkit.get_battery()

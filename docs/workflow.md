@@ -92,7 +92,7 @@ sequenceDiagram
     autonumber
     participant U as User (stdin)
     participant Ag as TelloAgent
-    participant Gm as Gemini 3 Flash<br/>(generateContent)
+    participant Gm as Gemini 3.5 Flash<br/>(generateContent)
     participant TK as TelloToolkit
     participant Vis as vision.describe_scene
     participant Vgm as Gemini 3.1 Flash Lite

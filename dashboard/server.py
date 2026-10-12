@@ -31,7 +31,13 @@ from core.agent import TelloAgent
 
 logger = logging.getLogger(__name__)
 
-STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIST_DIR = Path(__file__).parent / "static_dist"
+
+if not (STATIC_DIST_DIR / "index.html").exists():
+    raise RuntimeError(
+        f"Dashboard build not found at {STATIC_DIST_DIR}. "
+        "Run: cd dashboard/frontend && npm install && npm run build"
+    )
 
 # Injected by main.py ──────────────────────────────────────────────────────
 agent: Optional[TelloAgent] = None
@@ -88,10 +94,14 @@ async def _wire_live_callbacks():
         if _speaker is not None:
             _speaker.flush()
 
+    async def on_metric(name, value):
+        await broadcast({"type": "metric", "name": name, "value": value})
+
     live_agent.on_audio(on_audio)
     live_agent.on_text(on_text)
     live_agent.on_tool(on_tool)
     live_agent.on_interrupt(on_interrupt)
+    live_agent.on_metric(on_metric)
 
 
 @asynccontextmanager
@@ -133,7 +143,7 @@ async def _lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="TelloAI Dashboard", lifespan=_lifespan)
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIST_DIR)), name="static")
 
 
 @app.websocket("/ws")
@@ -188,6 +198,8 @@ async def websocket_endpoint(ws: WebSocket):
                 logger.info("Mic ON (browser push-to-talk)")
 
             elif mtype == "audio_end":
+                if use_live and live_agent is not None:
+                    live_agent.mark_user_turn_end()
                 logger.info("Mic OFF")
 
             elif mtype == "get_frame" and toolkit:
@@ -210,9 +222,9 @@ async def _handle_command(user_text: str):
     start = time.time()
 
     if use_live and live_agent is not None:
-        # Live path: user message is broadcast first, responses come back async
-        # via transcription callback.
-        await broadcast({"type": "chat", "role": "user", "text": user_text})
+        # Live path: send_text() already echoes the user message through the
+        # on_text callback, so broadcasting it here too produced a duplicate
+        # user bubble in the dashboard. Let send_text() be the single source.
         await live_agent.send_text(user_text)
         logger.info(f"Live command sent: {user_text[:60]}")
         # State will be broadcast by on_tool callbacks as they fire
@@ -241,7 +253,7 @@ async def _handle_command(user_text: str):
 @app.get("/")
 async def get_dashboard():
     """Serve the dashboard HTML."""
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(STATIC_DIST_DIR / "index.html")
 
 
 @app.get("/video-status")

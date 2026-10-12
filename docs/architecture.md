@@ -39,7 +39,7 @@ graph TD
 
     subgraph "Dashboard"
         SRV[dashboard/server.py<br/>FastAPI + WS]
-        UI[dashboard/static/*]
+        UI[dashboard/frontend -> dashboard/static_dist]
     end
 
     subgraph "Audio I/O"
@@ -95,7 +95,7 @@ tello-autonomous/
 ├── config.py                 # All constants, model strings, tool schemas
 │
 ├── core/
-│   ├── agent.py              # Legacy TelloAgent (Gemini 3 Flash REST loop)
+│   ├── agent.py              # Legacy TelloAgent (Gemini 3.5 Flash REST loop)
 │   ├── toolkit.py            # TelloToolkit — drone actions as typed functions
 │   ├── safety.py             # Geofence, battery, altitude, param validation
 │   ├── state.py              # DroneState — position, heading, flight status
@@ -114,7 +114,9 @@ tello-autonomous/
 │
 ├── dashboard/
 │   ├── server.py             # FastAPI + WebSocket, routes to Live or Legacy
-│   └── static/               # Dashboard UI (vanilla JS)
+│   ├── frontend/             # React/Vite dashboard source
+│   ├── static/               # Legacy dashboard UI fallback
+│   └── static_dist/          # Generated React dashboard build
 │
 ├── scripts/
 │   └── network_check.py      # Verify dual-WiFi setup
@@ -141,7 +143,7 @@ TelloAI runs as a **single Python process** with concurrent async tasks, plus Po
 - **PortAudio output callback** — `SpeakerPlayer._callback` is pulled by the sound card at the device's tick rate; it drains a ring buffer fed by `play()` and pads silence on underrun (`133:162:voice/audio.py`). No hand-rolled thread — PortAudio owns the thread.
 - **Dashboard only** — uvicorn's ASGI server manages the WebSocket/HTTP loop; the Live session runs inside uvicorn's lifespan context
 
-For the dashboard mode, a browser also runs JavaScript that captures mic audio via the Web Audio API (`ScriptProcessorNode` downsamples 48 kHz → 16 kHz PCM) and streams binary WebSocket frames to the server.
+For the dashboard mode, the React/Vite browser UI captures mic audio via the Web Audio API (`ScriptProcessorNode` downsamples browser audio to 16 kHz PCM) and streams binary WebSocket frames to the server.
 
 ## Data model
 
@@ -207,7 +209,7 @@ Key invariant: **every toolkit function runs through `SafetySystem` before touch
 
 | Concern | Live path | Legacy path |
 |---|---|---|
-| Model | `gemini-3.1-flash-live-preview` (released March 2026) | `gemini-3-flash-preview` |
+| Model | `gemini-3.1-flash-live-preview` | `gemini-3.5-flash` |
 | Session | One persistent WebSocket, stays open for whole session | New HTTPS POST per message |
 | Vision | Drone video streamed at 1 FPS into the session | Separate `generateContent` call per frame |
 | Voice | Native audio I/O with Aoede voice + input/output transcription | Text only |

@@ -163,7 +163,7 @@ Per-model pricing tables (USD per 1 M tokens). Consumed inline whenever a `llm_c
 
 | Model | Input | Output | Thinking |
 |---|---|---|---|
-| `gemini-3-flash-preview` | see `core/cost.py` | | |
+| `gemini-3.5-flash` | see `core/cost.py` | | |
 | `gemini-3.1-flash-lite` | | | |
 | `gemini-3.1-flash-live-preview` | 0.30 | 1.20 | 0.00 |
 
@@ -278,7 +278,7 @@ Standalone vision calls used by the **legacy path only** (Live mode does percept
 | Function | Model used | When called |
 |---|---|---|
 | `describe_scene(image_b64, drone_context, trace_id)` | `gemini-3.1-flash-lite` | After `get_frame` in the legacy agent loop (`core/agent.py` `306:319`) |
-| `spatial_point(image_b64, target)` | `gemini-robotics-er-1.5` | Currently unused — reserved for future object-pointing features |
+| `spatial_point(image_b64, target)` | `gemini-robotics-er-1.6-preview` | Currently unused — reserved for future object-pointing features |
 
 Both emit `vision_call` spans when a tracer is injected via `vision.tracer = tracer` (done in `main.py` `209:211`).
 

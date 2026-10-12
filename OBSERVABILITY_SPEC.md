@@ -21,7 +21,7 @@ class Span:
     span_id: str              # uuid4 short (8 chars)
     trace_id: str             # parent trace id
     span_type: str            # "llm_call" | "tool_call" | "vision_call" | "user_message" | "response"
-    name: str                 # e.g. "gemini-3-flash-preview", "get_frame", "describe_scene"
+    name: str                 # e.g. "gemini-3.5-flash", "get_frame", "describe_scene"
     start_time: float         # time.time()
     end_time: float | None
     duration_ms: float | None # computed: (end_time - start_time) * 1000
@@ -98,9 +98,9 @@ On trace completion, print a compact summary to terminal:
 
 ```
 [TRACE abc12345] "what do you see?" → 2230ms | $0.004 | 3 spans
-  ├─ llm_call  gemini-3-flash    1200ms  850→120 tokens  $0.002
+  ├─ llm_call  gemini-3.5-flash  1200ms  850→120 tokens  $0.002
   ├─ tool_call get_frame          80ms   ok
-  └─ llm_call  gemini-3-flash     900ms  1200→95 tokens  $0.002
+  └─ llm_call  gemini-3.5-flash   900ms  1200→95 tokens  $0.002
 ```
 
 Use Python `logging` with a custom formatter. Log at INFO level.
@@ -109,28 +109,28 @@ Use Python `logging` with a custom formatter. Log at INFO level.
 
 ## 2. Cost Calculator (`core/cost.py`)
 
-Pricing table (per million tokens, March 2026):
+Pricing table (per million tokens, June 2026):
 
 ```python
 MODEL_PRICING = {
-    "gemini-3-flash-preview": {
-        "input": 0.50,    # $/M input tokens
-        "output": 1.50,   # $/M output tokens
-        "thinking": 1.25, # $/M thinking tokens (if separate)
+    "gemini-3.5-flash": {
+        "input": 1.50,
+        "output": 9.00,
+        "thinking": 9.00,
     },
     "gemini-3.1-flash-lite": {
         "input": 0.25,
-        "output": 0.50,
+        "output": 1.50,
+        "thinking": 1.50,
+    },
+    "gemini-3.1-flash-live-preview": {
+        "input": 0.75,
+        "output": 4.50,
         "thinking": 0.00,
     },
-    "gemini-2.5-flash-native-audio": {
-        "input": 0.50,
-        "output": 1.50,
-        "thinking": 0.00,
-    },
-    "gemini-robotics-er-1.5": {
-        "input": 0.50,
-        "output": 1.50,
+    "gemini-robotics-er-1.6-preview": {
+        "input": 1.00,
+        "output": 5.00,
         "thinking": 0.00,
     },
 }
@@ -220,9 +220,9 @@ Shows spans as a horizontal waterfall timeline:
 ```
 abc12345 — "what do you see?" — 2230ms total — $0.004
 
-|████████████████████|                          llm_call  gemini-3-flash  1200ms  $0.002
+|████████████████████|                          llm_call  gemini-3.5-flash  1200ms  $0.002
                      |██|                       tool_call get_frame        80ms
-                        |█████████████████|     llm_call  gemini-3-flash   900ms  $0.002
+                        |█████████████████|     llm_call  gemini-3.5-flash   900ms  $0.002
 
 Tokens: 2050 in → 215 out | Thinking: 0
 Drone state: Battery 85% | Pos (0, 100, 80) | Heading 90°
@@ -245,7 +245,7 @@ Aggregate stats for the current session:
 ```
 Session: 14m 32s | Traces: 23 | Total cost: $0.082
 Avg latency: 1.8s | LLM calls: 47 | Tool calls: 31
-Models used: gemini-3-flash (38), gemini-3.1-flash-lite (9)
+Models used: gemini-3.5-flash (38), gemini-3.1-flash-lite (9)
 ```
 
 ---
@@ -315,11 +315,11 @@ TRACING = {
     {
       "span_id": "s1a2b3c4",
       "span_type": "llm_call",
-      "name": "gemini-3-flash-preview",
+      "name": "gemini-3.5-flash",
       "start_time": 1709589330.123,
       "duration_ms": 1200,
       "status": "ok",
-      "model": "gemini-3-flash-preview",
+      "model": "gemini-3.5-flash",
       "thinking_level": "medium",
       "tokens_in": 850,
       "tokens_out": 120,
@@ -344,7 +344,7 @@ TRACING = {
       "start_time": 1709589331.403,
       "duration_ms": 900,
       "status": "ok",
-      "vision_model": "gemini-3-flash-preview",
+      "vision_model": "gemini-3.5-flash",
       "vision_mode": "reasoning",
       "vision_prompt": "Describe what you see in this drone camera image...",
       "vision_response": "The image shows a bedroom with a bed centered in frame...",

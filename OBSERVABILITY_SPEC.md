@@ -3,6 +3,8 @@
 Hand this file to Cursor or Claude Code:
 > "Implement the observability system described in OBSERVABILITY_SPEC.md"
 
+> **Status (October 2026):** implemented in `core/tracing.py`, `core/cost.py`, `core/agent.py`, `vision/llm_vision.py`, `dashboard/server.py` and the React dashboard's Traces tab. Model names and prices below were updated to the current models. The text agent no longer makes a separate vision call after `get_frame` (the frame goes to the planner inside the function response), so `vision_call` spans now come only from the `vision/llm_vision.py` helpers.
+
 ---
 
 ## Goal
@@ -21,7 +23,7 @@ class Span:
     span_id: str              # uuid4 short (8 chars)
     trace_id: str             # parent trace id
     span_type: str            # "llm_call" | "tool_call" | "vision_call" | "user_message" | "response"
-    name: str                 # e.g. "gemini-3.5-flash", "get_frame", "describe_scene"
+    name: str                 # e.g. "gemini-3.8-flash", "get_frame", "analyze_frame"
     start_time: float         # time.time()
     end_time: float | None
     duration_ms: float | None # computed: (end_time - start_time) * 1000
@@ -98,9 +100,9 @@ On trace completion, print a compact summary to terminal:
 
 ```
 [TRACE abc12345] "what do you see?" → 2230ms | $0.004 | 3 spans
-  ├─ llm_call  gemini-3.5-flash  1200ms  850→120 tokens  $0.002
+  ├─ llm_call  gemini-3.8-flash  1200ms  850→120 tokens  $0.002
   ├─ tool_call get_frame          80ms   ok
-  └─ llm_call  gemini-3.5-flash   900ms  1200→95 tokens  $0.002
+  └─ llm_call  gemini-3.8-flash   900ms  1200→95 tokens  $0.002
 ```
 
 Use Python `logging` with a custom formatter. Log at INFO level.
@@ -109,29 +111,30 @@ Use Python `logging` with a custom formatter. Log at INFO level.
 
 ## 2. Cost Calculator (`core/cost.py`)
 
-Pricing table (per million tokens, June 2026):
+Pricing table (USD per million tokens, October 2026, from ai.google.dev/gemini-api/docs/pricing; output rates include thinking):
 
 ```python
 MODEL_PRICING = {
-    "gemini-3.5-flash": {
-        "input": 1.50,
-        "output": 9.00,
-        "thinking": 9.00,
+    "gemini-3.8-flash": {
+        "input": 0.75,
+        "output": 3.75,
+        "thinking": 3.75,
     },
     "gemini-3.1-flash-lite": {
         "input": 0.25,
         "output": 1.50,
         "thinking": 1.50,
     },
-    "gemini-3.1-flash-live-preview": {
+    # Live API text rates. Audio is $3.00/M in, $12.00/M out; image/video input $1.00/M.
+    "gemini-3.8-live": {
         "input": 0.75,
         "output": 4.50,
         "thinking": 0.00,
     },
-    "gemini-robotics-er-1.6-preview": {
+    "gemini-robotics-er-2-preview": {
         "input": 1.00,
         "output": 5.00,
-        "thinking": 0.00,
+        "thinking": 5.00,
     },
 }
 
@@ -139,7 +142,7 @@ def calculate_cost(model: str, tokens_in: int, tokens_out: int, thinking_tokens:
     """Returns cost in USD."""
 ```
 
-NOTE: These are approximate. Update when actual pricing is confirmed. The important thing is the infrastructure to track — exact numbers can be fixed later.
+NOTE: `core/cost.py` is the source of truth. Scheduled increases on 2027-01-01 (not yet applied there): `gemini-3.8-flash` to $1.50 / $7.50 and `gemini-robotics-er-2-preview` to $2.00 / $10.00.
 
 ---
 
@@ -220,9 +223,9 @@ Shows spans as a horizontal waterfall timeline:
 ```
 abc12345 — "what do you see?" — 2230ms total — $0.004
 
-|████████████████████|                          llm_call  gemini-3.5-flash  1200ms  $0.002
+|████████████████████|                          llm_call  gemini-3.8-flash  1200ms  $0.002
                      |██|                       tool_call get_frame        80ms
-                        |█████████████████|     llm_call  gemini-3.5-flash   900ms  $0.002
+                        |█████████████████|     llm_call  gemini-3.8-flash   900ms  $0.002
 
 Tokens: 2050 in → 215 out | Thinking: 0
 Drone state: Battery 85% | Pos (0, 100, 80) | Heading 90°
@@ -245,7 +248,7 @@ Aggregate stats for the current session:
 ```
 Session: 14m 32s | Traces: 23 | Total cost: $0.082
 Avg latency: 1.8s | LLM calls: 47 | Tool calls: 31
-Models used: gemini-3.5-flash (38), gemini-3.1-flash-lite (9)
+Models used: gemini-3.8-flash (38), gemini-3.1-flash-lite (9)
 ```
 
 ---
@@ -269,7 +272,8 @@ Models used: gemini-3.5-flash (38), gemini-3.1-flash-lite (9)
 | `core/cost.py` | **NEW** — pricing table, calculate_cost() |
 | `core/agent.py` | **MODIFY** — wrap process_message() with tracing |
 | `vision/llm_vision.py` | **MODIFY** — wrap analyze_frame() with vision spans |
-| `dashboard/server.py` | **MODIFY** — add /api/traces endpoints, broadcast traces, add Traces tab HTML |
+| `dashboard/server.py` | **MODIFY** — add /api/traces endpoints, broadcast traces |
+| `dashboard/frontend/` | **MODIFY** — Traces tab (`src/features/traces/TracePanel.tsx`) |
 | `config.py` | **MODIFY** — add TRACING config section (log_dir, max_traces, thumbnail_size) |
 | `main.py` | **MODIFY** — initialize TraceManager, pass to agent and vision |
 | `.gitignore` | **MODIFY** — add `logs/` |
@@ -315,11 +319,11 @@ TRACING = {
     {
       "span_id": "s1a2b3c4",
       "span_type": "llm_call",
-      "name": "gemini-3.5-flash",
+      "name": "gemini-3.8-flash",
       "start_time": 1709589330.123,
       "duration_ms": 1200,
       "status": "ok",
-      "model": "gemini-3.5-flash",
+      "model": "gemini-3.8-flash",
       "thinking_level": "medium",
       "tokens_in": 850,
       "tokens_out": 120,
@@ -335,26 +339,45 @@ TRACING = {
       "status": "ok",
       "tool_name": "get_frame",
       "tool_args": {},
-      "tool_result": {"success": true, "message": "Frame captured and analyzed"}
+      "tool_result": {"success": true, "message": "Frame captured. The camera image is attached to this result.", "image": "<jpeg 41234 bytes>"},
+      "frame_thumbnail_b64": "/9j/4AAQ...(small base64)..."
     },
     {
       "span_id": "s7g8h9i0",
-      "span_type": "vision_call",
-      "name": "describe_scene",
+      "span_type": "llm_call",
+      "name": "gemini-3.8-flash",
       "start_time": 1709589331.403,
       "duration_ms": 900,
       "status": "ok",
-      "vision_model": "gemini-3.5-flash",
-      "vision_mode": "reasoning",
-      "vision_prompt": "Describe what you see in this drone camera image...",
-      "vision_response": "The image shows a bedroom with a bed centered in frame...",
-      "frame_thumbnail_b64": "/9j/4AAQ...(small base64)...",
-      "json_parse_success": null,
+      "model": "gemini-3.8-flash",
+      "thinking_level": "medium",
       "tokens_in": 1200,
       "tokens_out": 95,
+      "thinking_tokens": 0,
       "cost_usd": 0.002
     }
   ]
+}
+```
+
+A `vision_call` span (from a `vision/llm_vision.py` helper called with a `trace_id`) looks like this:
+
+```json
+{
+  "span_id": "v1a2b3c4",
+  "span_type": "vision_call",
+  "name": "analyze_frame",
+  "duration_ms": 700,
+  "status": "ok",
+  "vision_model": "gemini-3.1-flash-lite",
+  "vision_mode": "quick",
+  "vision_prompt": "You are the obstacle check for a small indoor drone...",
+  "vision_response": "{\"clear\": true, \"obstacle\": \"\", \"distance_estimate\": \"none\"}",
+  "frame_thumbnail_b64": "/9j/4AAQ...(small base64)...",
+  "json_parse_success": true,
+  "tokens_in": 400,
+  "tokens_out": 20,
+  "cost_usd": 0.0001
 }
 ```
 
@@ -376,5 +399,5 @@ Add `tests/test_tracing.py`:
 
 - No distributed tracing (no Jaeger/Zipkin/OpenTelemetry) — this is a single-process system
 - No log rotation — file will be small for personal project use
-- No auth on trace endpoints — dashboard is local only
+- No separate auth on trace endpoints — the dashboard binds to 127.0.0.1 by default, and `/api/*` only requires a token when `DASHBOARD_TOKEN` is set
 - No trace search/filter — just chronological list

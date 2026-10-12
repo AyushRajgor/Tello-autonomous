@@ -37,6 +37,7 @@ export function TelemetryStrip({ state }: { state?: DashboardState }) {
   const height = getStateMetric<number | undefined>(state, "height_cm", position.z);
   const speed = getStateMetric<number | undefined>(state, "speed_cms", undefined);
   const duration = getStateMetric<number | undefined>(state, "flight_duration_s", undefined);
+  const linkLost = state?.link_ok === false;
 
   const batteryTone: Tone =
     battery === undefined ? "default" : battery <= 10 ? "danger" : battery <= 20 ? "warning" : "success";
@@ -52,7 +53,11 @@ export function TelemetryStrip({ state }: { state?: DashboardState }) {
       <Tile label="Altitude" value={formatCentimeters(height)} />
       <Tile label="Battery" value={battery === undefined ? "—" : `${Math.round(battery)}%`} tone={batteryTone} />
       <Tile label="Speed" value={speed === undefined ? "—" : `${Math.round(speed)} cm/s`} />
-      <Tile label="Status" value={isFlying ? "Airborne" : "Grounded"} tone={isFlying ? "success" : "default"} />
+      <Tile
+        label="Status"
+        value={linkLost ? "Link lost" : isFlying ? "Airborne" : "Grounded"}
+        tone={linkLost ? "danger" : isFlying ? "success" : "default"}
+      />
       <Tile label="Time" value={formatSeconds(duration)} />
     </div>
   );

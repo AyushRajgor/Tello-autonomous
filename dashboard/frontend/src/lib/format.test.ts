@@ -33,6 +33,8 @@ describe("dashboard format helpers", () => {
   it("builds the websocket URL for secure and insecure pages", () => {
     expect(buildWebSocketUrl("http:", "localhost:8080")).toBe("ws://localhost:8080/ws");
     expect(buildWebSocketUrl("https:", "dash.local")).toBe("wss://dash.local/ws");
+    expect(buildWebSocketUrl("http:", "localhost:8080", "a b&c")).toBe("ws://localhost:8080/ws?token=a%20b%26c");
+    expect(buildWebSocketUrl("http:", "localhost:8080", null)).toBe("ws://localhost:8080/ws");
   });
 
   it("reads state metrics with a fallback", () => {

@@ -10,6 +10,8 @@ export function SystemPanels({ snapshot, micActive }: { snapshot: DashboardSnaps
   const distance = getStateMetric<number | undefined>(snapshot.state, "distance_from_home_cm", undefined);
   const altitude = getStateMetric<number | undefined>(snapshot.state, "height_cm", undefined);
   const isFlying = getStateMetric<boolean>(snapshot.state, "is_flying", false);
+  const linkLost = snapshot.state?.link_ok === false;
+  const operatorHold = snapshot.state?.operator_hold === true;
 
   return (
     <div className="space-y-3 p-3">
@@ -19,7 +21,7 @@ export function SystemPanels({ snapshot, micActive }: { snapshot: DashboardSnaps
         rows={[
           ["Socket", snapshot.connection],
           ["Frames", snapshot.videoStatus.active ? snapshot.videoStatus.source ?? "active" : "inactive"],
-          ["Telemetry", "2s server push"]
+          ["Telemetry", "1s server push"]
         ]}
         good={["connected", "webcam", "drone"]}
       />
@@ -49,11 +51,13 @@ export function SystemPanels({ snapshot, micActive }: { snapshot: DashboardSnaps
         title="Safety Envelope"
         rows={[
           ["Flight", isFlying ? "airborne" : "grounded"],
+          ["Drone link", linkLost ? "lost" : "ok"],
+          ["AI control", operatorHold ? "paused by operator" : "enabled"],
           ["Battery", battery === undefined ? "—" : `${Math.round(battery)}%`],
           ["Geofence", `${formatCentimeters(distance)} / 800 cm`],
           ["Altitude", `${formatCentimeters(altitude)} / 200 cm`]
         ]}
-        good={["airborne"]}
+        good={["airborne", "ok", "enabled"]}
       />
     </div>
   );

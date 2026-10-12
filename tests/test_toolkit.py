@@ -121,11 +121,12 @@ class TestToolkit:
 
 class TestSafety:
     def test_geofence_blocks(self, flying_toolkit):
-        # Try to move beyond geofence (800cm)
-        result = flying_toolkit.move("forward", 500)
-        assert result["success"]  # 500 is within bounds
-        result = flying_toolkit.move("forward", 500)
-        assert not result["success"]  # 1000 total would exceed 800
+        # Moves are capped at 100cm each; eight of them reach the 800cm fence.
+        for _ in range(8):
+            assert flying_toolkit.move("forward", 100)["success"]
+        result = flying_toolkit.move("forward", 100)
+        assert not result["success"]  # 900 total would exceed 800
+        assert "geofence" in result["error"]
 
     def test_altitude_cap(self, flying_toolkit):
         # Already at 80cm from takeoff, max is 200

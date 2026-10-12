@@ -1,4 +1,4 @@
-import { Drone, Mic, MicOff, SendHorizontal, Terminal, User } from "lucide-react";
+import { Drone, Hand, Mic, MicOff, SendHorizontal, ShieldAlert, Terminal, User } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,9 @@ export function ConversationPanel({
         ) : (
           <div className="flex flex-col gap-4 p-3">
             {messages.map((message) => {
+              if (message.role === "safety" || message.role === "operator") {
+                return <LogRow key={message.id} message={message} />;
+              }
               const isUser = message.role === "user";
               return (
                 <div key={message.id} className={cn("flex gap-2.5", isUser && "flex-row-reverse")}>
@@ -134,6 +137,28 @@ export function ConversationPanel({
           <SendHorizontal />
         </Button>
       </form>
+    </div>
+  );
+}
+
+const logLevelClass = {
+  critical: "border-destructive/70 bg-destructive/15 text-destructive",
+  warning: "border-warning/50 bg-warning/10 text-foreground",
+  info: "border-border bg-muted/40 text-muted-foreground"
+} as const;
+
+/** Compact, full-width log row for safety events and direct operator actions. */
+function LogRow({ message }: { message: ChatMessage }) {
+  const level = message.level ?? "info";
+  const isSafety = message.role === "safety";
+  const Icon = isSafety ? ShieldAlert : Hand;
+  return (
+    <div className={cn("flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed", logLevelClass[level])}>
+      <Icon className={cn("mt-0.5 size-3.5 shrink-0", level === "warning" && "text-warning")} />
+      <p className="min-w-0 text-pretty wrap-break-word">
+        <span className="mr-1.5 font-semibold tracking-wide uppercase">{isSafety ? "Safety" : "Operator"}</span>
+        {message.text}
+      </p>
     </div>
   );
 }

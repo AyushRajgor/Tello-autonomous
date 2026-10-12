@@ -1,4 +1,4 @@
-import { Activity, Camera, ChevronDown, Gauge, Mic, Plane, Settings } from "lucide-react";
+import { Activity, Camera, ChevronDown, Gauge, Hand, Mic, OctagonX, Plane, Settings, WifiOff } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import * as React from "react";
 
@@ -14,23 +14,31 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConversationPanel } from "@/features/chat/ConversationPanel";
-import { FlightControls } from "@/features/controls/FlightControls";
+import { EmergencyControls, FlightControls } from "@/features/controls/FlightControls";
+import { SafetyAlerts } from "@/features/safety/SafetyAlerts";
+import { SafetyBanners } from "@/features/safety/SafetyBanners";
 import { SystemPanels } from "@/features/telemetry/SystemPanels";
 import { TelemetryStrip } from "@/features/telemetry/TelemetryStrip";
 import { TracePanel } from "@/features/traces/TracePanel";
 import { VideoStage } from "@/features/video/VideoStage";
-import { fetchTraces, fetchVideoStatus, sendJson } from "@/lib/api";
+import { fetchTraces, fetchVideoStatus, getDashboardToken, sendJson, sendOperator } from "@/lib/api";
 import { PushToTalkAudio } from "@/lib/audio";
 import {
   createDashboardModel,
+  describeOperatorAction,
+  dismissAlert,
+  isLinkLost,
+  isOperatorHold,
   mergeFetchedTraces,
+  pushAlert,
   reduceDashboardMessage,
   type DashboardMessage
 } from "@/lib/dashboard-state";
 import { buildWebSocketUrl, getStateMetric } from "@/lib/format";
+import { useOperatorHotkeys } from "@/lib/hotkeys";
 import { cn } from "@/lib/utils";
 import { createFrameRequestLoop, type FrameRequestLoop } from "@/lib/video-stream";
-import type { ConnectionState, DashboardSnapshot, VideoStatus } from "@/types";
+import type { ConnectionState, DashboardSnapshot, OperatorAction, OperatorArgs, VideoStatus } from "@/types";
 
 type Settings = {
   camera: boolean;
@@ -96,7 +104,9 @@ export function App() {
 
     function connect() {
       setConnection("connecting");
-      const socket = new WebSocket(buildWebSocketUrl(window.location.protocol, window.location.host));
+      const socket = new WebSocket(
+        buildWebSocketUrl(window.location.protocol, window.location.host, getDashboardToken())
+      );
       socketRef.current = socket;
 
       socket.onopen = () => {
@@ -258,16 +268,50 @@ export function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // keepHold: camera-only requests (Observe) must not lift an operator STOP.
   const sendCommand = React.useCallback(
-    (text: string) => {
+    (text: string, keepHold = false) => {
       setLatencyMs(null);
-      const sent = sendJson(socketRef.current, { type: "command", text });
+      const payload = keepHold ? { type: "command", text, keep_hold: true } : { type: "command", text };
+      const sent = sendJson(socketRef.current, payload);
       if (!sent) {
         appendSystemMessage("Command not sent — the dashboard socket is offline.");
       }
     },
     [appendSystemMessage]
   );
+
+  // Direct operator control — bypasses the AI entirely.
+  const sendOperatorAction = React.useCallback((action: OperatorAction, args?: OperatorArgs) => {
+    if (sendOperator(socketRef.current, action, args)) {
+      return;
+    }
+    const label = describeOperatorAction(action, args as Record<string, unknown> | undefined);
+    const safetyCritical = action === "hover" || action === "land" || action === "emergency_stop";
+    setModel((current) =>
+      pushAlert(
+        reduceDashboardMessage(current, {
+          type: "chat",
+          role: "system",
+          text: `${label} not sent — the dashboard socket is offline.`
+        }),
+        {
+          level: safetyCritical ? "critical" : "warning",
+          code: "socket_offline",
+          message: `${label} NOT sent — the dashboard is offline and cannot reach the drone.`
+        }
+      )
+    );
+  }, []);
+
+  const handleStop = React.useCallback(() => sendOperatorAction("hover"), [sendOperatorAction]);
+  const handleLand = React.useCallback(() => sendOperatorAction("land"), [sendOperatorAction]);
+  const handleResume = React.useCallback(() => sendOperatorAction("resume"), [sendOperatorAction]);
+  const handleDismissAlert = React.useCallback((id: string) => {
+    setModel((current) => dismissAlert(current, id));
+  }, []);
+
+  useOperatorHotkeys({ onStop: handleStop, onLand: handleLand });
 
   const startMic = React.useCallback(async () => {
     if (micActiveRef.current) {
@@ -329,6 +373,8 @@ export function App() {
   const battery = getStateMetric<number | undefined>(model.state, "battery_pct", undefined);
   const lowBattery = battery !== undefined && battery <= 20;
   const connected = connection === "connected";
+  const linkLost = isLinkLost(model.state);
+  const operatorHold = isOperatorHold(model.state);
 
   const connDot =
     connection === "connected" ? "bg-success" : connection === "connecting" ? "bg-warning" : "bg-destructive";
@@ -359,10 +405,33 @@ export function App() {
                 low battery
               </Badge>
             ) : null}
+            {linkLost ? (
+              <Badge variant="destructive" className="gap-1 font-semibold tracking-wide">
+                <WifiOff />
+                LINK LOST
+              </Badge>
+            ) : null}
+            {operatorHold ? (
+              <Badge variant="outline" className="gap-1 border-warning/60 font-normal text-warning">
+                <Hand />
+                AI paused
+              </Badge>
+            ) : null}
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+            {/* On narrow screens the side panel is below the fold: keep a STOP in reach. */}
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleStop}
+              aria-label="STOP — hover in place (header)"
+              className="font-bold tracking-wider text-white lg:hidden dark:bg-destructive"
+            >
+              <OctagonX />
+              STOP
+            </Button>
+            <div className="flex items-center gap-1.5 font-mono text-xs tabular-nums text-muted-foreground max-sm:hidden">
               <span className="text-muted-foreground/60">T+</span>
               {missionClock}
             </div>
@@ -373,6 +442,7 @@ export function App() {
         {/* Body */}
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:overflow-hidden">
           <main className="flex min-h-0 flex-col gap-4 p-4">
+            <SafetyBanners linkLost={linkLost} operatorHold={operatorHold} onResume={handleResume} />
             <VideoStage
               frameSrc={model.frameSrc}
               videoStatus={videoStatus}
@@ -384,6 +454,10 @@ export function App() {
           </main>
 
           <aside className="flex min-h-0 flex-col gap-4 border-t p-4 lg:border-t-0 lg:border-l">
+            <section aria-label="Safety controls" className="shrink-0 rounded-xl border bg-card p-3">
+              <EmergencyControls onOperator={sendOperatorAction} connected={connected} />
+            </section>
+
             <Collapsible defaultOpen className="shrink-0 overflow-hidden rounded-xl border bg-card">
               <CollapsibleTrigger className="group flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-accent/40">
                 <span className="text-sm font-semibold">Flight Controls</span>
@@ -392,7 +466,7 @@ export function App() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="px-4 pb-4">
-                  <FlightControls onCommand={sendCommand} connected={connected} />
+                  <FlightControls onOperator={sendOperatorAction} onCommand={sendCommand} />
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -434,6 +508,7 @@ export function App() {
             </Card>
           </aside>
         </div>
+        <SafetyAlerts alerts={model.alerts} onDismiss={handleDismissAlert} />
       </div>
     </TooltipProvider>
   );

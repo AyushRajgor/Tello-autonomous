@@ -1,5 +1,10 @@
 export type DashboardState = Record<string, unknown> & {
   position?: Record<string, unknown>;
+  is_flying?: boolean;
+  /** False when the safety watchdog stops receiving drone telemetry. */
+  link_ok?: boolean;
+  /** True after an operator STOP/land/E-STOP: AI motion is blocked until resume. */
+  operator_hold?: boolean;
 };
 
 export type TraceSummaryInput = Record<string, unknown> & {
@@ -10,9 +15,10 @@ export type TraceSummaryInput = Record<string, unknown> & {
   spans?: unknown[];
 };
 
-export function buildWebSocketUrl(protocol: string, host: string): string {
+export function buildWebSocketUrl(protocol: string, host: string, token?: string | null): string {
   const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
-  return `${wsProtocol}//${host}/ws`;
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${wsProtocol}//${host}/ws${query}`;
 }
 
 export function getStateMetric<T>(state: DashboardState | undefined, key: string, fallback: T): T {

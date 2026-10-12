@@ -21,7 +21,8 @@ RETIRED_MODELS = {
 
 def test_gemini_model_defaults_are_current():
     assert MODELS["vision_reasoning"] == "gemini-3.8-flash"
-    assert MODELS["vision_quick"] == "gemini-3.1-flash-lite"
+    assert MODELS["vision_quick"] == "gemini-3.5-flash-lite"
+    assert MODELS["voice_fallback"] == "gpt-realtime-2.1"
     assert MODELS["live"] == "gemini-3.8-live"
     assert MODELS["vision_spatial"] == "gemini-robotics-er-2-preview"
 

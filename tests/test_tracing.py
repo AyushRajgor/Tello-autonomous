@@ -14,8 +14,8 @@ def test_cost_calculator():
     cost = calculate_cost("gemini-3.8-flash", 2_000_000, 1_000_000, 0)
     assert cost == 5.25  # (2 * 0.75 + 1 * 3.75)
 
-    cost_lite = calculate_cost("gemini-3.1-flash-lite", 1_000_000, 1_000_000, 0)
-    assert cost_lite == 1.75
+    cost_lite = calculate_cost("gemini-3.5-flash-lite", 1_000_000, 1_000_000, 0)
+    assert cost_lite == 2.80  # 0.30 + 2.50
 
     # with thinking tokens (billed at the output rate)
     cost_think = calculate_cost("gemini-3.8-flash", 1_000_000, 0, 1_000_000)

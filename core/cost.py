@@ -12,10 +12,10 @@ MODEL_PRICING = {
         "output": 3.75,
         "thinking": 3.75,
     },
-    "gemini-3.1-flash-lite": {
-        "input": 0.25,
-        "output": 1.50,
-        "thinking": 1.50,
+    "gemini-3.5-flash-lite": {
+        "input": 0.30,
+        "output": 2.50,
+        "thinking": 2.50,
     },
     # Live API text rates. Audio is billed at $3.00/M in and $12.00/M out,
     # image/video input at $1.00/M.

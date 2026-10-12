@@ -120,10 +120,10 @@ MODEL_PRICING = {
         "output": 3.75,
         "thinking": 3.75,
     },
-    "gemini-3.1-flash-lite": {
-        "input": 0.25,
-        "output": 1.50,
-        "thinking": 1.50,
+    "gemini-3.5-flash-lite": {
+        "input": 0.30,
+        "output": 2.50,
+        "thinking": 2.50,
     },
     # Live API text rates. Audio is $3.00/M in, $12.00/M out; image/video input $1.00/M.
     "gemini-3.8-live": {
@@ -248,7 +248,7 @@ Aggregate stats for the current session:
 ```
 Session: 14m 32s | Traces: 23 | Total cost: $0.082
 Avg latency: 1.8s | LLM calls: 47 | Tool calls: 31
-Models used: gemini-3.8-flash (38), gemini-3.1-flash-lite (9)
+Models used: gemini-3.8-flash (38), gemini-3.5-flash-lite (9)
 ```
 
 ---
@@ -369,7 +369,7 @@ A `vision_call` span (from a `vision/llm_vision.py` helper called with a `trace_
   "name": "analyze_frame",
   "duration_ms": 700,
   "status": "ok",
-  "vision_model": "gemini-3.1-flash-lite",
+  "vision_model": "gemini-3.5-flash-lite",
   "vision_mode": "quick",
   "vision_prompt": "You are the obstacle check for a small indoor drone...",
   "vision_response": "{\"clear\": true, \"obstacle\": \"\", \"distance_estimate\": \"none\"}",

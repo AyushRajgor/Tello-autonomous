@@ -13,7 +13,10 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-# ── Model Strings (verified October 2026 against ai.google.dev models/deprecations) ──
+# ── Model Strings ──
+# Each is the newest model of its line, verified 2026-10-13 against the
+# Gemini API models list for this key and ai.google.dev/gemini-api/docs/models.
+# (gemini-omni-* are video-generation models — not applicable here.)
 MODELS = {
     # Real-time voice + vision via Live API WebSocket. GA since 2026-09-15;
     # replaces gemini-3.1-flash-live-preview (shutdown 2026-11-17).
@@ -24,14 +27,17 @@ MODELS = {
     # GA since 2026-09-02 (gemini-3.5-flash was deprecated 2026-10-08).
     # Thinking levels: low/medium/high — "minimal" is rejected.
     "vision_reasoning": "gemini-3.8-flash",
-    # Fast yes/no checks, "is path clear?", cheap. GA until 2027-05-07;
-    # gemini-3.5-flash-lite is the newer (pricier) option.
-    "vision_quick": "gemini-3.1-flash-lite",
+    # Fast yes/no checks, "is path clear?". GA since 2026-07-21; newest and
+    # fastest Flash-Lite (supports thinking "minimal"). Replaces
+    # gemini-3.1-flash-lite (cheaper, GA until 2027-05-07).
+    "vision_quick": "gemini-3.5-flash-lite",
     # Spatial precision: 2D object pointing ([y, x] normalized 0-1000).
     # gemini-robotics-er-1.6-preview was shut down 2026-08-31.
     "vision_spatial": "gemini-robotics-er-2-preview",
-    # OpenAI fallback (unused for now)
-    "voice_fallback": "gpt-realtime",
+    # OpenAI fallback (unused for now). gpt-realtime-2.1: newest Realtime-API
+    # model with tool use (gpt-live-1 lacks image/video input and the
+    # Realtime endpoint, so it can't drive the drone).
+    "voice_fallback": "gpt-realtime-2.1",
 }
 
 # ── HTTP retries for generate_content (agent + vision) ──
@@ -50,7 +56,7 @@ GEMINI_HTTP_RETRY = {
 # ignored by the backend — don't send them.
 THINKING = {
     "reasoning": "medium",   # gemini-3.8-flash: scene analysis, planning (low|medium|high)
-    "quick": "minimal",      # gemini-3.1-flash-lite: path-clear checks, simple yes/no
+    "quick": "minimal",      # gemini-3.5-flash-lite: path-clear checks, simple yes/no
     "spatial": "low",        # robotics-er: coordinate extraction
 }
 

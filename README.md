@@ -133,7 +133,7 @@ Model IDs live in `config.py` (`MODELS`). Prices live in `core/cost.py`.
 |---|---|---|
 | Live voice + video | `gemini-3.8-live` | GA. Replaces `gemini-3.1-flash-live-preview`, which shuts down 2026-11-17. Tools declared `BLOCKING`. |
 | Text agent / reasoning vision | `gemini-3.8-flash` | Thinking `medium` (3.8 Flash accepts low/medium/high; `minimal` is rejected). No temperature is sent. |
-| Quick vision checks | `gemini-3.1-flash-lite` | Thinking `minimal`. Available until 2027-05-07. |
+| Quick vision checks | `gemini-3.5-flash-lite` | Thinking `minimal`. Newest Flash-Lite (GA 2026-07-21); replaces `gemini-3.1-flash-lite`. |
 | Spatial pointing (configured, unused) | `gemini-robotics-er-2-preview` | Replaces `gemini-robotics-er-1.6-preview` (shut down 2026-08-31). No code calls it yet. |
 
 The Live path is the default for `--voice` and `--dashboard`. It keeps one

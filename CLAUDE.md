@@ -100,7 +100,7 @@ core/watchdog.py thread (every 1 s): battery warn / force-land, keepalive, link 
 ### Models (config.py `MODELS`)
 
 - Text agent and reasoning vision: `gemini-3.8-flash`, thinking `medium` (never send `minimal`; 3.8 Flash rejects it). No temperature.
-- Quick checks (`check_path_clear`): `gemini-3.1-flash-lite`, thinking `minimal`.
+- Quick checks (`check_path_clear`): `gemini-3.5-flash-lite`, thinking `minimal`.
 - Live: `gemini-3.8-live` (not `-extended-thinking`, which rejects BLOCKING tools). No thinking config.
 - Spatial: `gemini-robotics-er-2-preview`, configured but unused.
 

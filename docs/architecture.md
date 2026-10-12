@@ -135,7 +135,7 @@ tello-autonomous/
 | Service | Purpose | Transport | Where it enters |
 |---|---|---|---|
 | Gemini Live API (`gemini-3.8-live`) | Real-time voice + vision + tool calling | WebSocket (persistent, resumed across connections) | `voice/gemini_live.py` |
-| Gemini generateContent (`gemini-3.8-flash`, `gemini-3.1-flash-lite`) | Text agent loop, one-shot vision helpers | HTTPS | `core/agent.py`, `vision/llm_vision.py` |
+| Gemini generateContent (`gemini-3.8-flash`, `gemini-3.5-flash-lite`) | Text agent loop, one-shot vision helpers | HTTPS | `core/agent.py`, `vision/llm_vision.py` |
 | DJI Tello SDK | Drone commands, state packets, video stream | UDP (djitellopy) | `core/toolkit.py` |
 | User microphone / speakers | Voice I/O on the host | PortAudio via `sounddevice` | `voice/audio.py` |
 | Browser microphone | Dashboard push-to-talk | `getUserMedia` → binary WebSocket frames | `dashboard/frontend/src/lib/audio.ts` |

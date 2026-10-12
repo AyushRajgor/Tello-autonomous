@@ -229,7 +229,7 @@ Output goes to `logs/traces.jsonl` (one trace per line), the terminal (if `TRACI
 | Model | Input | Output | Thinking |
 |---|---|---|---|
 | `gemini-3.8-flash` | 0.75 | 3.75 | 3.75 |
-| `gemini-3.1-flash-lite` | 0.25 | 1.50 | 1.50 |
+| `gemini-3.5-flash-lite` | 0.30 | 2.50 | 2.50 |
 | `gemini-3.8-live` (text rates) | 0.75 | 4.50 | 0.00 |
 | `gemini-robotics-er-2-preview` | 1.00 | 5.00 | 5.00 |
 
@@ -305,7 +305,7 @@ One-shot frame analysis. **The text agent no longer uses it** (frames go straigh
 
 | Function | Model | Output |
 |---|---|---|
-| `analyze_frame(image_b64, prompt, mode, context, trace_id, response_schema)` | `quick` → `gemini-3.1-flash-lite` (thinking minimal); `reasoning` → `gemini-3.8-flash` (thinking medium) | Text, or raw JSON when a schema is given |
+| `analyze_frame(image_b64, prompt, mode, context, trace_id, response_schema)` | `quick` → `gemini-3.5-flash-lite` (thinking minimal); `reasoning` → `gemini-3.8-flash` (thinking medium) | Text, or raw JSON when a schema is given |
 | `describe_scene` | reasoning | Plain text |
 | `check_path_clear` | quick | `{clear, obstacle, distance_estimate}`; anything unparseable counts as **not clear** |
 | `search_for_object` | reasoning | `{found, location_in_frame, confidence, description, suggestion}`; unparseable → not found |

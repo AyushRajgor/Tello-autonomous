@@ -205,22 +205,20 @@ flowchart LR
 
 ### What you see on load
 
-The dashboard is a "flight deck": three columns on wide screens (≥1280 px), two on laptops, one stacked column on phones.
+The dashboard follows your system's light or dark setting; change it under **Display settings** (gear icon). On wide screens (≥1280 px) it shows three columns, on laptops two, and on phones one stacked column. The page reads in this order:
 
-- **Top bar**: console socket, agent route (Gemini Live / legacy loop) and drone state (grounded / airborne / link lost), an `AI paused` pill when it applies, time airborne (`T+`, from the drone's flight duration), a battery gauge, and settings (camera feed, flight HUD, voice input, latency and FPS overlays).
-- **Centre**:
-  - The "AI paused by operator" banner (with **Resume AI**) when it applies.
-  - The **camera view** with a HUD over it: heading tape, altitude ladder with the 2 m ceiling and 20 cm floor, reticle, position and ground speed. **LINK LOST** covers the camera view with hazard stripes.
-  - The **command line** for the AI: text, push-to-talk mic, and suggestions that fill the field without sending. While the AI works on a command it shows "AI working…".
-- **Right rail** (never scrolls on desktop):
-  - **Safety**: a large **STOP** (Space), **Land** (Esc), and **E-STOP**, which needs a second "Cut motors" click within 5 s.
-  - **Flight controls**: two RC-style sticks. The left one climbs, descends and turns; the right one moves forward, back, left and right. A step selector (20 / 50 / 100 cm, 45 / 90 / 180°) sets how far each nudge goes. Below them are Takeoff (disabled while airborne), Flip forward, and **Observe**, which asks the AI to describe the view without moving and does not lift a STOP. Everything except Observe goes straight to the drone, with safety limits still applied. One manual command runs at a time: pressing again while the previous one runs shows "Drone is busy with the previous manual command".
-  - **Pre-flight / flight checks**: console, drone link, battery, video and AI agent, with a GO / NO-GO verdict.
-- **Left column**:
-  - **Navigation**: a top-down map centred on the takeoff point, with "up" as the takeoff heading. It shows the flight trail, the drone's heading, range rings, and the 8 m geofence. It zooms automatically from ±3 m out to the whole fence. Beside it are range, altitude, heading and the bearing home.
-  - **Log / Traces / Systems**: the mission log puts your commands, AI replies, AI tool calls (expand one to see its result), operator actions and safety events on one timeline.
-- **Phones**: STOP and Land are pinned to the bottom of the screen.
-- **Safety toasts** appear over the camera view. Critical ones stay until dismissed.
+- **Top bar**: connection, AI agent (Gemini Live or legacy agent), drone state (landed, flying or link lost), an `AI paused` label when it applies, flight time, battery, and Display settings (theme, camera feed, voice messages, response time and frame rate).
+- **Camera and flight data**:
+  - The "AI paused" banner, with **Resume AI**, after you press Stop, Land or Emergency stop.
+  - The camera view. When the drone link drops, a **Link lost** message covers it.
+  - Flight data: a small top-down map from the takeoff point (up is the takeoff heading) with the flight path and the 8 m fence. It zooms from ±2.5 m out to the whole fence. Beside it are altitude (of the 2 m ceiling), distance from home (of the 8 m fence), speed, heading, the way home and position.
+- **Conversation**: Log, Traces and Systems tabs above the **Message TelloAI** box (text, or the microphone button for voice). The log puts your messages, the AI's replies, each action the AI takes (open one to see its arguments and result), your direct actions and safety events on one timeline. While it's empty, it offers example instructions; selecting one fills the box without sending it.
+- **Controls** (they stay in view while you scroll on laptops):
+  - **Safety**: **Stop** (Space), **Land** (Esc) and **Emergency stop**, which asks you to confirm "Cut motors" within 5 s.
+  - **Manual flight**: pick a distance (20 / 50 / 100 cm) and a turn angle (45 / 90 / 180°), then use the **Climb and turn** and **Move** pads. Below them are Take off (disabled while flying), Flip forward, and **Observe**, which asks the AI to describe the view without moving and does not lift a Stop. Everything except Observe goes straight to the drone, with safety limits still applied. One manual command runs at a time: pressing again while the previous one runs shows "Drone is busy with the previous manual command".
+  - **Pre-flight checks**: dashboard, drone link, battery, video and AI. It says "Ready to fly" or "Not ready", lists only what needs attention, and can show all checks.
+- **Phones**: Stop and Land are pinned to the bottom of the screen.
+- **Alerts** appear above the camera. Notices disappear after 6 s; warnings and critical alerts stay until you dismiss them.
 
 ### Keyboard shortcuts
 

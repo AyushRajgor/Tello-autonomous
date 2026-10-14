@@ -2,31 +2,21 @@ import { Hand, Play } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-/**
- * Operator-hold banner. LINK LOST is drawn over the camera view instead
- * (VideoStage), where the operator is already looking.
- */
+/** Shown while an operator Stop, Land or Emergency stop holds the AI. */
 export function SafetyBanners({ operatorHold, onResume }: { operatorHold: boolean; onResume: () => void }) {
   if (!operatorHold) {
     return null;
   }
 
   return (
-    <div
-      role="status"
-      className="flex shrink-0 flex-wrap items-center gap-3 rounded-xl border border-warning/50 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--warning)_14%,transparent),transparent)] px-4 py-2.5 animate-in fade-in slide-in-from-top-1"
-    >
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning">
-        <Hand className="size-4" />
-      </span>
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-warning-subtle p-3 ps-4">
+      <Hand className="size-5 shrink-0 text-warning-text" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">AI paused by operator</p>
-        <p className="text-xs text-pretty text-muted-foreground">
-          The AI can't move the drone until you resume it or give it a new instruction.
-        </p>
+        <p className="text-sm font-semibold">AI paused</p>
+        <p className="text-[13px] text-pretty">You stopped the drone. The AI can't move it until you resume or send a new instruction.</p>
       </div>
-      <Button size="sm" onClick={onResume} className="bg-warning text-background hover:bg-warning/90">
-        <Play />
+      <Button variant="outline" size="sm" onClick={onResume}>
+        <Play aria-hidden="true" />
         Resume AI
       </Button>
     </div>

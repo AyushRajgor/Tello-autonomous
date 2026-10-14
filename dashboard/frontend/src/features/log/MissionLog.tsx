@@ -1,16 +1,30 @@
-import { ChevronRight, Hand, ShieldAlert, Sparkles, Terminal, User, Wrench } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { CircleCheck, CircleX, Hand, ShieldAlert, Sparkles, Terminal, Wrench } from "lucide-react";
 import * as React from "react";
 
 import type { ChatMessage, ToolCall } from "@/lib/dashboard-state";
 import { buildTimeline, formatClock, formatToolSignature, type TimelineEntry } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
+export const SUGGESTIONS = [
+  "Take off and hover",
+  "What do you see?",
+  "Turn around slowly and describe the room",
+  "Come back home and land"
+];
+
 /**
- * The mission log: conversation, AI tool calls, operator actions and safety
- * events on one timeline, so "what happened and why" reads top to bottom.
+ * One timeline for the session: what you asked, what the AI said and did,
+ * and what you and the safety watchdog did directly.
  */
-export function MissionLog({ messages, tools }: { messages: ChatMessage[]; tools: ToolCall[] }) {
+export function MissionLog({
+  messages,
+  tools,
+  onSuggest
+}: {
+  messages: ChatMessage[];
+  tools: ToolCall[];
+  onSuggest: (text: string) => void;
+}) {
   const entries = React.useMemo(() => buildTimeline(messages, tools), [messages, tools]);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const pinnedRef = React.useRef(true);
@@ -32,11 +46,11 @@ export function MissionLog({ messages, tools }: { messages: ChatMessage[]; tools
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
     >
       {entries.length === 0 ? (
-        <EmptyLog />
+        <EmptyLog onSuggest={onSuggest} />
       ) : (
-        <ol className="relative space-y-3 px-3 py-3 before:absolute before:top-4 before:bottom-4 before:left-[23px] before:w-px before:bg-border">
+        <ol className="flex flex-col gap-4 p-4">
           {entries.map((entry) => (
-            <TimelineRow key={entry.id} entry={entry} />
+            <Row key={entry.id} entry={entry} />
           ))}
         </ol>
       )}
@@ -44,135 +58,135 @@ export function MissionLog({ messages, tools }: { messages: ChatMessage[]; tools
   );
 }
 
-function EmptyLog() {
-  const steps = [
-    ["Take off", "from the flight sticks, or ask the AI."],
-    ["Talk to it", "type below the camera or hold the mic."],
-    ["Stay in charge", "Space stops, Esc lands — any time."]
-  ];
+function EmptyLog({ onSuggest }: { onSuggest: (text: string) => void }) {
   return (
-    <div className="flex h-full flex-col justify-center gap-4 px-5 py-8">
+    <div className="flex flex-col gap-4 p-4">
       <div>
-        <p className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">Mission log</p>
-        <p className="mt-1 text-sm text-pretty text-muted-foreground">
-          Everything said and done this session lands here — commands, AI tool calls, safety events.
+        <p className="text-sm font-medium">No messages yet</p>
+        <p className="mt-1 text-[13px] text-pretty text-muted-foreground">
+          Tell TelloAI what to do in plain words. Its replies and every action it takes show up here.
         </p>
       </div>
-      <ol className="space-y-2.5">
-        {steps.map(([title, body], i) => (
-          <li key={title} className="flex gap-3 text-sm">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full border font-mono text-[11px] text-hud">
-              {i + 1}
-            </span>
-            <span className="text-pretty">
-              <span className="font-medium">{title}</span> <span className="text-muted-foreground">{body}</span>
-            </span>
-          </li>
+      <div className="flex flex-col items-start gap-2">
+        <p className="text-[13px] text-muted-foreground">Try one of these:</p>
+        {SUGGESTIONS.map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => onSuggest(suggestion)}
+            className="rounded-lg bg-secondary px-3 py-1.5 text-start text-sm transition-[background-color,scale] duration-150 ease-out outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-safe:active:scale-[0.96]"
+          >
+            {suggestion}
+          </button>
         ))}
-      </ol>
+      </div>
     </div>
   );
 }
 
-type Tone = { icon: LucideIcon; label: string; node: string; body: string };
-
-function messageTone(message: ChatMessage): Tone {
-  switch (message.role) {
-    case "user":
-      return { icon: User, label: "You", node: "bg-foreground text-background", body: "text-foreground" };
-    case "assistant":
-      return {
-        icon: Sparkles,
-        label: "TelloAI",
-        node: "bg-primary text-primary-foreground",
-        body: "rounded-lg rounded-tl-sm border border-primary/20 bg-primary/[0.06] px-3 py-2 text-foreground"
-      };
-    case "safety": {
-      const level = message.level ?? "info";
-      return {
-        icon: ShieldAlert,
-        label: level === "critical" ? "Safety · critical" : level === "warning" ? "Safety · warning" : "Safety",
-        node:
-          level === "critical"
-            ? "bg-destructive text-white"
-            : level === "warning"
-              ? "bg-warning text-background"
-              : "bg-raised text-muted-foreground border",
-        body:
-          level === "critical"
-            ? "rounded-lg border border-destructive/60 bg-destructive/12 px-3 py-2 text-foreground"
-            : level === "warning"
-              ? "rounded-lg border border-warning/40 bg-warning/8 px-3 py-2 text-foreground"
-              : "text-muted-foreground"
-      };
-    }
-    case "operator": {
-      const failed = message.level === "critical" || message.level === "warning";
-      return {
-        icon: Hand,
-        label: "Operator",
-        node: failed ? "bg-destructive text-white" : "bg-raised text-warning border",
-        body: failed ? "rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2" : "text-muted-foreground"
-      };
-    }
-    default:
-      return { icon: Terminal, label: "System", node: "bg-raised text-muted-foreground border", body: "font-mono text-xs text-muted-foreground" };
-  }
+function Time({ at }: { at: number }) {
+  return <time className="text-xs text-muted-foreground tabular-nums">{formatClock(at)}</time>;
 }
 
-function TimelineRow({ entry }: { entry: TimelineEntry }) {
+function Row({ entry }: { entry: TimelineEntry }) {
   if (entry.kind === "tool") {
     return <ToolRow tool={entry.tool} />;
   }
   const { message } = entry;
-  const tone = messageTone(message);
-  const Icon = tone.icon;
-  return (
-    <li className="relative flex gap-3 animate-in fade-in slide-in-from-bottom-1 duration-200">
-      <span className={cn("z-10 mt-0.5 grid size-[22px] shrink-0 place-items-center rounded-full", tone.node)}>
-        <Icon className="size-3" strokeWidth={2.5} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-baseline gap-2 text-[11px]">
-          <span className="font-semibold tracking-wide">{tone.label}</span>
-          <time className="font-mono text-[10px] text-muted-foreground/70 tabular-nums">{formatClock(message.receivedAt)}</time>
-        </p>
-        <p className={cn("mt-1 w-fit max-w-full text-sm leading-relaxed text-pretty wrap-break-word", tone.body)}>
+
+  if (message.role === "user") {
+    return (
+      <li className="flex flex-col items-end gap-1">
+        <p className="max-w-[85%] rounded-2xl rounded-ee-md bg-secondary px-3 py-2 text-sm leading-relaxed text-pretty wrap-break-word">
           {message.text}
         </p>
-      </div>
+        <Time at={message.receivedAt} />
+      </li>
+    );
+  }
+
+  if (message.role === "assistant") {
+    return (
+      <li className="flex gap-2.5">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text" aria-hidden="true">
+          <Sparkles className="size-3.5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-baseline gap-2">
+            <span className="text-[13px] font-semibold">TelloAI</span>
+            <Time at={message.receivedAt} />
+          </p>
+          <p className="mt-0.5 text-sm leading-relaxed text-pretty wrap-break-word">{message.text}</p>
+        </div>
+      </li>
+    );
+  }
+
+  return <EventRow message={message} />;
+}
+
+/** Operator actions, safety events and system notes: one line with an icon and a label. */
+function EventRow({ message }: { message: ChatMessage }) {
+  const level = message.level ?? "info";
+  const failed = level === "critical" || level === "warning";
+  const kind =
+    message.role === "safety"
+      ? { icon: ShieldAlert, label: "Safety" }
+      : message.role === "operator"
+        ? { icon: Hand, label: "You" }
+        : { icon: Terminal, label: "System" };
+  const Icon = kind.icon;
+
+  return (
+    <li
+      className={cn(
+        "flex items-start gap-2.5 text-[13px]",
+        failed && "rounded-lg p-2.5",
+        level === "critical" && "bg-destructive-subtle",
+        level === "warning" && "bg-warning-subtle"
+      )}
+    >
+      <Icon
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          level === "critical" ? "text-destructive-text" : level === "warning" ? "text-warning-text" : "text-muted-foreground"
+        )}
+        strokeWidth={1.5}
+        aria-hidden="true"
+      />
+      <p className="min-w-0 flex-1 text-pretty wrap-break-word">
+        <span className="font-medium">{kind.label}</span>
+        <span className={failed ? "" : "text-muted-foreground"}> · {message.text}</span>
+      </p>
+      <Time at={message.receivedAt} />
     </li>
   );
 }
 
 function ToolRow({ tool }: { tool: ToolCall }) {
   const ok = tool.status === "ok";
+  const StatusIcon = ok ? CircleCheck : CircleX;
   return (
-    <li className="relative flex gap-3 animate-in fade-in duration-200">
-      <span
-        className={cn(
-          "z-10 mt-1.5 grid size-[22px] shrink-0 place-items-center rounded-md border",
-          ok ? "border-hud/40 bg-sunken text-hud" : "border-destructive/60 bg-destructive/15 text-destructive"
-        )}
-      >
-        <Wrench className="size-3" />
-      </span>
-      <details className="group min-w-0 flex-1 rounded-lg border bg-sunken/60 open:bg-sunken">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 [&::-webkit-details-marker]:hidden">
-          <ChevronRight className="size-3 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-          <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-hud">{formatToolSignature(tool)}</code>
-          <span
-            className={cn(
-              "shrink-0 rounded px-1.5 py-px font-mono text-[10px] uppercase",
-              ok ? "bg-success/15 text-success" : "bg-destructive/20 text-destructive"
-            )}
-          >
-            {tool.status}
+    <li className="ps-[34px]">
+      <details className="group rounded-lg bg-muted">
+        <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+          <Wrench className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+          <code className="min-w-0 flex-1 truncate font-mono text-xs">{formatToolSignature(tool)}</code>
+          <span className={cn("flex shrink-0 items-center gap-1", ok ? "text-success-text" : "text-destructive-text")}>
+            <StatusIcon className="size-3.5" aria-hidden="true" />
+            {ok ? "Done" : "Failed"}
           </span>
         </summary>
-        <pre className="max-h-48 overflow-auto border-t px-2.5 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap wrap-break-word text-muted-foreground">
-          {safeJson(tool.result)}
-        </pre>
+        <dl className="grid gap-2 px-2.5 pb-2.5 font-mono text-xs">
+          <div>
+            <dt className="font-sans text-muted-foreground">Arguments</dt>
+            <dd className="mt-0.5 whitespace-pre-wrap wrap-break-word">{safeJson(tool.args)}</dd>
+          </div>
+          <div>
+            <dt className="font-sans text-muted-foreground">Result</dt>
+            <dd className="mt-0.5 max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word">{safeJson(tool.result)}</dd>
+          </div>
+        </dl>
       </details>
     </li>
   );
@@ -182,6 +196,6 @@ function safeJson(value: unknown): string {
   try {
     return JSON.stringify(value, null, 2) ?? "null";
   } catch {
-    return "Unable to serialize payload";
+    return "Unable to show this value";
   }
 }

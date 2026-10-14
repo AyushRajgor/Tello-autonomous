@@ -63,10 +63,11 @@ describe("dashboard app", () => {
   it("renders the flight deck shell", () => {
     render(<App />);
 
-    expect(screen.getAllByText("TELLOAI").length).toBeGreaterThan(0);
-    expect(screen.getByRole("region", { name: "Mission view" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Flight Controls" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "TelloAI" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Camera" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Flight data" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Safety" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Manual flight" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /log/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /traces/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /systems/i })).toBeInTheDocument();
@@ -87,32 +88,32 @@ describe("dashboard app", () => {
     render(<App />);
     act(() => mockSockets[0].onopen?.());
 
-    fireEvent.change(screen.getByLabelText("Command input"), { target: { value: "scan the room" } });
+    fireEvent.change(screen.getByLabelText("Message TelloAI"), { target: { value: "scan the room" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(screen.getByText(/AI working/i)).toBeInTheDocument();
+    expect(screen.getByText(/working on it/i)).toBeInTheDocument();
 
     serverPush({ type: "chat", role: "assistant", text: "Scanning." });
-    expect(screen.queryByText(/AI working/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/working on it/i)).not.toBeInTheDocument();
   });
 
   it("suggestions fill the command line instead of sending", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "What do you see?" }));
-    expect(screen.getByLabelText("Command input")).toHaveValue("What do you see?");
+    expect(screen.getByLabelText("Message TelloAI")).toHaveValue("What do you see?");
     expect(sentPayloads()).toEqual([]);
   });
 
   it("the step selector changes the distance the sticks send", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("radio", { name: "100" }));
+    fireEvent.click(screen.getByRole("radio", { name: "100 cm" }));
     fireEvent.click(screen.getByRole("button", { name: "Move up 100 cm" }));
     expect(sentPayloads()).toEqual([{ type: "operator", action: "move", args: { direction: "up", cm: 100 } }]);
   });
 
-  it("disables Takeoff while airborne", () => {
+  it("disables Take off while flying", () => {
     render(<App />);
     serverPush({ type: "state", data: { is_flying: true, link_ok: true } });
-    expect(screen.getByRole("button", { name: "Airborne" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Flying" })).toBeDisabled();
   });
 
   it("the phone quick bar sends STOP and Land directly", () => {
@@ -137,7 +138,7 @@ describe("dashboard app", () => {
 
     expect(screen.getByText(/800 ms/i)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Command input"), { target: { value: "hello" } });
+    fireEvent.change(screen.getByLabelText("Message TelloAI"), { target: { value: "hello" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => expect(screen.queryByText(/800 ms/i)).not.toBeInTheDocument());
@@ -151,7 +152,7 @@ describe("dashboard app", () => {
 
   it("flight pad buttons send operator messages; Observe stays an AI chat command", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Takeoff" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take off" }));
     fireEvent.click(screen.getByRole("button", { name: "Move forward 50 cm" }));
     fireEvent.click(screen.getByRole("button", { name: "Turn right 90°" }));
     fireEvent.click(screen.getByRole("button", { name: /observe/i }));
@@ -165,16 +166,16 @@ describe("dashboard app", () => {
     ]);
   });
 
-  it("E-STOP requires an explicit confirmation", () => {
+  it("Emergency stop requires an explicit confirmation", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /e-stop/i }));
+    fireEvent.click(screen.getByRole("button", { name: /emergency stop/i }));
     expect(sentPayloads()).toEqual([]);
     expect(screen.getByText(/the drone will fall/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(sentPayloads()).toEqual([]);
 
-    fireEvent.click(screen.getByRole("button", { name: /e-stop/i }));
+    fireEvent.click(screen.getByRole("button", { name: /emergency stop/i }));
     fireEvent.click(screen.getByRole("button", { name: /cut motors/i }));
     expect(sentPayloads()).toEqual([{ type: "operator", action: "emergency_stop" }]);
   });
@@ -189,7 +190,7 @@ describe("dashboard app", () => {
       { type: "operator", action: "land" }
     ]);
 
-    const input = screen.getByLabelText("Command input");
+    const input = screen.getByLabelText("Message TelloAI");
     input.focus();
     fireEvent.keyDown(input, { key: " ", code: "Space" });
     fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
@@ -198,10 +199,10 @@ describe("dashboard app", () => {
 
   it("shows the operator-hold banner with a Resume AI action", () => {
     render(<App />);
-    expect(screen.queryByText("AI paused by operator")).not.toBeInTheDocument();
+    expect(screen.queryByText(/You stopped the drone/)).not.toBeInTheDocument();
 
     serverPush({ type: "state", data: { operator_hold: true, link_ok: true } });
-    expect(screen.getByText("AI paused by operator")).toBeInTheDocument();
+    expect(screen.getByText(/You stopped the drone/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /resume ai/i }));
     expect(sentPayloads()).toEqual([{ type: "operator", action: "resume" }]);
@@ -210,13 +211,13 @@ describe("dashboard app", () => {
   it("shows LINK LOST prominently when the drone link drops", () => {
     render(<App />);
     serverPush({ type: "state", data: { link_ok: false } });
-    expect(screen.getByRole("alert")).toHaveTextContent("LINK LOST");
+    expect(screen.getAllByRole("alert").some((el) => el.textContent?.includes("Link lost"))).toBe(true);
   });
 
   it("renders safety events as alerts and failed operator actions visibly", () => {
     render(<App />);
     serverPush({ type: "safety", level: "critical", code: "battery_critical", message: "Battery critical (9%)" });
-    expect(screen.getByRole("alert")).toHaveTextContent("Battery critical (9%)");
+    expect(screen.getAllByRole("alert").some((el) => el.textContent?.includes("Battery critical (9%)"))).toBe(true);
 
     serverPush({
       type: "operator_result",
@@ -228,6 +229,32 @@ describe("dashboard app", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Dismiss alert" })[0]!);
     expect(screen.getAllByRole("button", { name: "Dismiss alert" })).toHaveLength(1);
+  });
+
+  it("applies the saved theme and follows the system setting", () => {
+    let systemDark = false;
+    const listeners: Array<() => void> = [];
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      get matches() {
+        return query.includes("dark") && systemDark;
+      },
+      addEventListener: (_: string, cb: () => void) => listeners.push(cb),
+      removeEventListener: () => {}
+    }));
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0));
+    localStorage.setItem("telloai.settings", JSON.stringify({ theme: "dark" }));
+    const { unmount } = render(<App />);
+    expect(document.documentElement).toHaveClass("dark");
+    unmount();
+
+    localStorage.setItem("telloai.settings", JSON.stringify({ theme: "system" }));
+    render(<App />);
+    expect(document.documentElement).not.toHaveClass("dark");
+    systemDark = true;
+    act(() => listeners.forEach((cb) => cb()));
+    expect(document.documentElement).toHaveClass("dark");
+    localStorage.removeItem("telloai.settings");
+    document.documentElement.classList.remove("dark");
   });
 
   it("passes the page token through to the WebSocket URL", () => {

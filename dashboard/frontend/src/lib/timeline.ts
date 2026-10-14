@@ -34,7 +34,8 @@ export function formatToolSignature(tool: Pick<ToolCall, "name" | "args">): stri
   return `${tool.name}(${parts.join(", ")})`;
 }
 
+const clockFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
 export function formatClock(at: number): string {
-  const date = new Date(at);
-  return [date.getHours(), date.getMinutes(), date.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
+  return clockFormat.format(new Date(at));
 }

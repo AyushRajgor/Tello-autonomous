@@ -4,41 +4,42 @@ import * as React from "react";
 import type { SafetyAlert } from "@/lib/dashboard-state";
 import { cn } from "@/lib/utils";
 
-const AUTO_DISMISS_MS = { info: 6000, warning: 12000 } as const;
+/** Only notices time out. Warnings and critical alerts are errors: they stay until dismissed. */
+const NOTICE_DISMISS_MS = 6000;
 
-const levelStyle = {
-  critical: "border-destructive bg-destructive text-white shadow-destructive/30",
-  warning: "border-warning/60 bg-popover text-foreground",
-  info: "border-border bg-popover text-foreground"
-} as const;
-
-const levelIcon = {
-  critical: OctagonAlert,
-  warning: TriangleAlert,
-  info: Info
-} as const;
+const levelIcon = { critical: OctagonAlert, warning: TriangleAlert, info: Info } as const;
+const levelLabel = { critical: "Critical", warning: "Warning", info: "Notice" } as const;
 
 /**
- * Toast stack for safety events, centred over the camera view. Critical alerts
- * stay until dismissed. It never overlaps the STOP / Land controls (right rail
- * on desktop, bottom bar on phones).
+ * Toasts over the main column. Two live regions render empty from the start,
+ * so screen readers announce what is added: urgent alerts assertively, the
+ * rest politely.
  */
 export function SafetyAlerts({ alerts, onDismiss }: { alerts: SafetyAlert[]; onDismiss: (id: string) => void }) {
+  const critical = alerts.filter((alert) => alert.level === "critical");
+  const other = alerts.filter((alert) => alert.level !== "critical");
   return (
-    <div className="pointer-events-none fixed inset-x-3 top-16 z-50 mx-auto flex max-w-[440px] flex-col items-stretch gap-2 lg:right-[400px]">
-      {alerts.map((alert) => (
-        <AlertToast key={alert.id} alert={alert} onDismiss={onDismiss} />
-      ))}
+    <div className="pointer-events-none fixed inset-x-4 top-16 z-50 mx-auto flex max-w-md flex-col gap-2 lg:end-[calc(340px+2rem)] xl:top-4">
+      <div role="alert" className="flex flex-col gap-2">
+        {critical.map((alert) => (
+          <AlertToast key={alert.id} alert={alert} onDismiss={onDismiss} />
+        ))}
+      </div>
+      <div role="status" className="flex flex-col gap-2">
+        {other.map((alert) => (
+          <AlertToast key={alert.id} alert={alert} onDismiss={onDismiss} />
+        ))}
+      </div>
     </div>
   );
 }
 
 function AlertToast({ alert, onDismiss }: { alert: SafetyAlert; onDismiss: (id: string) => void }) {
   React.useEffect(() => {
-    if (alert.level === "critical") {
+    if (alert.level !== "info") {
       return;
     }
-    const timer = setTimeout(() => onDismiss(alert.id), AUTO_DISMISS_MS[alert.level]);
+    const timer = setTimeout(() => onDismiss(alert.id), NOTICE_DISMISS_MS);
     return () => clearTimeout(timer);
   }, [alert.id, alert.level, onDismiss]);
 
@@ -47,29 +48,30 @@ function AlertToast({ alert, onDismiss }: { alert: SafetyAlert; onDismiss: (id: 
 
   return (
     <div
-      role={critical ? "alert" : "status"}
       className={cn(
-        "pointer-events-auto flex items-start gap-3 overflow-hidden rounded-xl border px-3.5 py-3 shadow-2xl animate-in fade-in slide-in-from-top-2",
-        levelStyle[alert.level]
+        "pointer-events-auto flex items-start gap-3 rounded-xl border border-transparent p-3 shadow-overlay",
+        "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-3 motion-safe:duration-300 motion-reduce:animate-in motion-reduce:fade-in",
+        critical ? "bg-destructive text-white" : "bg-popover text-popover-foreground"
       )}
     >
-      <Icon className={cn("mt-0.5 size-5 shrink-0", alert.level === "warning" && "text-warning")} />
+      <Icon
+        className={cn("mt-0.5 size-5 shrink-0", alert.level === "warning" && "text-warning-text", alert.level === "info" && "text-muted-foreground")}
+        aria-hidden="true"
+      />
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-[10px] font-semibold tracking-[0.16em] uppercase opacity-85">
-          {critical ? "Critical" : alert.level === "warning" ? "Warning" : "Notice"}
-        </p>
-        <p className="mt-0.5 text-sm text-pretty wrap-break-word">{alert.message}</p>
+        <p className="text-[13px] font-semibold">{levelLabel[alert.level]}</p>
+        <p className="text-sm text-pretty wrap-break-word">{alert.message}</p>
       </div>
       <button
         type="button"
         aria-label="Dismiss alert"
         onClick={() => onDismiss(alert.id)}
         className={cn(
-          "grid size-6 shrink-0 place-items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "-me-1 -mt-1 grid size-8 shrink-0 place-items-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
           critical ? "hover:bg-white/15" : "text-muted-foreground hover:bg-accent hover:text-foreground"
         )}
       >
-        <X className="size-3.5" />
+        <X className="size-4" aria-hidden="true" />
       </button>
     </div>
   );

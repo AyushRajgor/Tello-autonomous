@@ -4,66 +4,123 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================================
-   TelloAI Flight Deck — an avionics console.
-   Deep blue-black panels, a cyan "instrument" ink for everything the drone
-   reports, warm orange for the AI, and red kept strictly for STOP / danger.
+   TelloAI dashboard — a calm, neutral operator console.
+   One cool-tinted neutral ramp, one blue accent, and only the status colors
+   the product renders (danger, warning, success). Every text and fill pair
+   below was measured with culori against WCAG 2.2 AA in both themes.
+   Theme switching uses the `.dark` class only (set before first paint in
+   index.html, then by the Display settings).
    ========================================================================== */
 
 :root {
-  --radius: 0.75rem;
+  color-scheme: light;
+  --radius: 0.5rem;
 
-  --background: oklch(0.985 0.003 250);
-  --foreground: oklch(0.18 0.02 255);
+  /* Surfaces */
+  --background: oklch(0.985 0.002 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 255);
+  --card-foreground: oklch(0.21 0.006 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 255);
-  --primary: oklch(0.7 0.18 48);
-  --primary-foreground: oklch(0.2 0.03 45);
-  --secondary: oklch(0.95 0.006 250);
-  --secondary-foreground: oklch(0.22 0.02 255);
-  --muted: oklch(0.95 0.006 250);
-  --muted-foreground: oklch(0.5 0.02 255);
-  --accent: oklch(0.95 0.006 250);
-  --accent-foreground: oklch(0.22 0.02 255);
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.9 0.008 250);
-  --input: oklch(0.9 0.008 250);
-  --ring: oklch(0.7 0.18 48);
+  --popover-foreground: oklch(0.21 0.006 260);
+  --muted: oklch(0.965 0.003 260);
+  --accent: oklch(0.94 0.004 260);
+  --accent-foreground: oklch(0.21 0.006 260);
+  --secondary: oklch(0.955 0.004 260);
+  --secondary-foreground: oklch(0.21 0.006 260);
 
-  --success: oklch(0.62 0.16 152);
-  --warning: oklch(0.72 0.16 75);
-  --hud: oklch(0.55 0.12 215);
-  --raised: oklch(0.97 0.004 250);
-  --sunken: oklch(0.94 0.006 250);
+  /* Text */
+  --foreground: oklch(0.21 0.006 260);
+  --muted-foreground: oklch(0.5 0.012 260);
+
+  /* Borders: separators stay subtle; input boundaries clear 3:1. */
+  --border: oklch(0.92 0.004 260);
+  --input: oklch(0.64 0.01 260);
+  --ring: oklch(0.53 0.18 262);
+
+  /* Accent (interactive, selected, the one primary action) */
+  --primary: oklch(0.53 0.18 262);
+  --primary-foreground: oklch(1 0 0);
+  --primary-text: oklch(0.5 0.18 262);
+  --primary-subtle: oklch(0.96 0.016 262);
+
+  /* Status */
+  --destructive: oklch(0.55 0.2 27);
+  --destructive-text: oklch(0.5 0.19 27);
+  --destructive-subtle: oklch(0.965 0.014 27);
+  --warning: oklch(0.8 0.14 80);
+  --warning-foreground: oklch(0.26 0.04 70);
+  --warning-text: oklch(0.5 0.1 65);
+  --warning-subtle: oklch(0.97 0.03 85);
+  --success: oklch(0.6 0.15 152);
+  --success-text: oklch(0.48 0.12 152);
+  --success-subtle: oklch(0.965 0.03 152);
+
+  /* Elevation: a ring plus lift in light mode (better-ui surfaces recipe). */
+  --shadow-border:
+    0px 0px 0px 1px oklch(0 0 0 / 0.06),
+    0px 1px 2px -1px oklch(0 0 0 / 0.06),
+    0px 2px 4px 0px oklch(0 0 0 / 0.04);
+  --shadow-border-hover:
+    0px 0px 0px 1px oklch(0 0 0 / 0.08),
+    0px 1px 2px -1px oklch(0 0 0 / 0.08),
+    0px 2px 4px 0px oklch(0 0 0 / 0.06);
+  --shadow-overlay:
+    0px 0px 0px 1px oklch(0 0 0 / 0.06),
+    0px 8px 24px -4px oklch(0 0 0 / 0.12);
+  --image-outline: oklch(0 0 0 / 0.1);
+
+  /* Media: the camera area stays dark in both themes. */
+  --media-bg: oklch(0.17 0.004 260);
+  --media-chip: oklch(0.24 0.005 260);
+  --media-text: oklch(0.96 0.003 260);
+  --media-text-muted: oklch(0.72 0.012 260);
+  --media-scrim: oklch(0.1 0 0 / 0.6);
 }
 
 .dark {
-  --background: oklch(0.13 0.012 255);
-  --foreground: oklch(0.96 0.006 250);
-  --card: oklch(0.175 0.015 255);
-  --card-foreground: oklch(0.96 0.006 250);
-  --popover: oklch(0.2 0.016 255);
-  --popover-foreground: oklch(0.96 0.006 250);
-  --primary: oklch(0.74 0.17 52);
-  --primary-foreground: oklch(0.2 0.03 45);
-  --secondary: oklch(0.24 0.018 255);
-  --secondary-foreground: oklch(0.96 0.006 250);
-  --muted: oklch(0.24 0.018 255);
-  --muted-foreground: oklch(0.7 0.02 250);
-  --accent: oklch(0.26 0.02 255);
-  --accent-foreground: oklch(0.96 0.006 250);
-  /* White text on this red clears 4.5:1. */
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.85 0.03 250 / 10%);
-  --input: oklch(0.85 0.03 250 / 14%);
-  --ring: oklch(0.74 0.17 52);
+  color-scheme: dark;
 
-  --success: oklch(0.76 0.16 155);
-  --warning: oklch(0.83 0.15 80);
-  --hud: oklch(0.84 0.11 200);
-  --raised: oklch(0.21 0.017 255);
-  --sunken: oklch(0.115 0.012 255);
+  --background: oklch(0.155 0.004 260);
+  --card: oklch(0.195 0.005 260);
+  --card-foreground: oklch(0.96 0.003 260);
+  --popover: oklch(0.225 0.005 260);
+  --popover-foreground: oklch(0.96 0.003 260);
+  --muted: oklch(0.24 0.006 260);
+  --accent: oklch(0.28 0.007 260);
+  --accent-foreground: oklch(0.96 0.003 260);
+  --secondary: oklch(0.255 0.006 260);
+  --secondary-foreground: oklch(0.96 0.003 260);
+
+  --foreground: oklch(0.96 0.003 260);
+  --muted-foreground: oklch(0.72 0.012 260);
+
+  --border: oklch(0.29 0.006 260);
+  --input: oklch(0.53 0.01 260);
+  --ring: oklch(0.74 0.12 262);
+
+  --primary: oklch(0.55 0.16 262);
+  --primary-foreground: oklch(1 0 0);
+  --primary-text: oklch(0.74 0.12 262);
+  --primary-subtle: oklch(0.26 0.05 262);
+
+  --destructive: oklch(0.56 0.19 27);
+  --destructive-text: oklch(0.74 0.15 25);
+  --destructive-subtle: oklch(0.25 0.06 27);
+  --warning: oklch(0.8 0.14 80);
+  --warning-foreground: oklch(0.26 0.04 70);
+  --warning-text: oklch(0.83 0.12 80);
+  --warning-subtle: oklch(0.26 0.04 80);
+  --success: oklch(0.72 0.15 152);
+  --success-text: oklch(0.78 0.13 152);
+  --success-subtle: oklch(0.25 0.04 152);
+
+  /* Depth shadows vanish on dark backgrounds: keep one white ring. */
+  --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08);
+  --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.13);
+  --shadow-overlay:
+    0 0 0 1px oklch(1 0 0 / 0.1),
+    0px 8px 24px -4px oklch(0 0 0 / 0.5);
+  --image-outline: oklch(1 0 0 / 0.1);
 }
 
 @theme inline {
@@ -80,6 +137,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
+  --color-primary-subtle: var(--primary-subtle);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -87,15 +146,27 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--foreground);
+  --color-destructive-text: var(--destructive-text);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-text: var(--warning-text);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-success: var(--success);
+  --color-success-text: var(--success-text);
+  --color-success-subtle: var(--success-subtle);
+  --color-media-bg: var(--media-bg);
+  --color-media-chip: var(--media-chip);
+  --color-media-text: var(--media-text);
+  --color-media-text-muted: var(--media-text-muted);
+  --color-media-scrim: var(--media-scrim);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-hud: var(--hud);
-  --color-raised: var(--raised);
-  --color-sunken: var(--sunken);
+
+  --shadow-border: var(--shadow-border);
+  --shadow-border-hover: var(--shadow-border-hover);
+  --shadow-overlay: var(--shadow-overlay);
 
   --font-sans: "Geist", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -106,10 +177,12 @@
     border-color: var(--border);
   }
 
-  html,
-  body,
-  #root {
-    height: 100%;
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* The top bar is sticky below xl; keep focused and anchored targets clear of it. */
+    scroll-padding-block-start: 4.5rem;
   }
 
   body {
@@ -117,138 +190,28 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-synthesis: none;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  ::selection {
-    background: color-mix(in oklch, var(--primary) 35%, transparent);
+  /* Icons keep their stroke weight at every size (Lucide draws on a 24px grid). */
+  svg.lucide :where(path, circle, rect, line, polyline, polygon, ellipse) {
+    vector-effect: non-scaling-stroke;
   }
 }
 
-/* App backdrop: a faint engineering grid under every panel. */
-.deck-backdrop {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(90% 60% at 50% -10%, color-mix(in oklch, var(--hud) 7%, transparent), transparent 70%),
-    linear-gradient(color-mix(in oklch, var(--foreground) 2.5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklch, var(--foreground) 2.5%, transparent) 1px, transparent 1px);
-  background-size:
-    100% 100%,
-    32px 32px,
-    32px 32px;
-}
-
-/* Panel chrome: a hairline border plus a lit top edge. */
-.panel {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, color-mix(in oklch, var(--card) 97%, var(--hud) 3%), var(--card));
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
-    0 1px 2px oklch(0 0 0 / 25%);
-}
-
-/* The camera viewport when there's no picture: a receding floor grid. */
-.viewport-void {
-  background:
-    radial-gradient(70% 55% at 50% 45%, color-mix(in oklch, var(--hud) 9%, transparent), transparent 70%),
-    var(--sunken);
-}
-.viewport-floor {
-  position: absolute;
-  inset: 55% -40% -30%;
-  background-image:
-    linear-gradient(color-mix(in oklch, var(--hud) 20%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklch, var(--hud) 20%, transparent) 1px, transparent 1px);
-  background-size: 48px 48px;
-  transform: perspective(320px) rotateX(62deg);
-  transform-origin: 50% 0;
-  mask-image: linear-gradient(to bottom, transparent, black 30%, black 60%, transparent);
-  animation: floor-scroll 3.2s linear infinite;
-}
-@keyframes floor-scroll {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 48px;
+@layer components {
+  /* A raised surface: shadow for depth, a transparent border for forced-colors mode. */
+  .surface {
+    border: 1px solid transparent;
+    border-radius: var(--radius-xl);
+    background-color: var(--card);
+    color: var(--card-foreground);
+    box-shadow: var(--shadow-border);
   }
 }
 
-/* Subtle scanlines over the live feed so the HUD reads as an overlay. */
-.scanlines {
-  background-image: repeating-linear-gradient(to bottom, oklch(0 0 0 / 0%) 0 2px, oklch(0 0 0 / 10%) 2px 3px);
-}
-
-/* Tactical map sweep: spins around the SVG origin (home). */
-.radar-sweep {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: radar-spin 4s linear infinite;
-}
-@keyframes radar-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Hazard stripes for LINK LOST. */
-.hazard {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in oklch, var(--destructive) 80%, transparent) 0 14px,
-    oklch(0.13 0.012 255 / 80%) 14px 28px
-  );
-}
-
-/* HUD ink stays legible over bright video. */
-.hud-ink {
-  color: var(--hud);
-  text-shadow:
-    0 0 6px oklch(0 0 0 / 80%),
-    0 0 1px oklch(0 0 0 / 90%);
-}
-.hud-stroke {
-  filter: drop-shadow(0 0 2px oklch(0 0 0 / 85%));
-}
-
-/* Let the Radix collapsible animate height smoothly. */
-@keyframes collapsible-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-@keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-[data-slot="collapsible-content"] {
-  overflow: hidden;
-}
-[data-slot="collapsible-content"][data-state="open"] {
-  animation: collapsible-down 0.2s ease-out;
-}
-[data-slot="collapsible-content"][data-state="closed"] {
-  animation: collapsible-up 0.2s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
+/* Theme switch: suppress every transition for one frame so colors swap at once. */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
 }

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
@@ -58,6 +58,7 @@ describe("dashboard app", () => {
     cleanup();
     vi.unstubAllGlobals();
     window.history.replaceState({}, "", "/");
+    localStorage.clear();
   });
 
   it("renders the flight deck shell", () => {
@@ -106,6 +107,41 @@ describe("dashboard app", () => {
   it("the step selector changes the distance the sticks send", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("radio", { name: "100 cm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move up 100 cm" }));
+    expect(sentPayloads()).toEqual([{ type: "operator", action: "move", args: { direction: "up", cm: 100 } }]);
+  });
+
+  it("folds Manual flight and the checks away, never Safety, and remembers it", () => {
+    const { unmount } = render(<App />);
+    const safety = screen.getByRole("region", { name: "Safety" });
+    expect(within(safety).queryAllByRole("button").filter((b) => b.hasAttribute("aria-expanded"))).toEqual([]);
+
+    const manual = screen.getByRole("button", { name: "Manual flight" });
+    expect(manual).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(manual);
+    expect(manual).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Take off" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pre-flight checks" }));
+    expect(screen.queryByText(/show all checks/i)).not.toBeVisible();
+    // The verdict stays in the header, and Stop stays one click away.
+    expect(screen.getByText("Not ready")).toBeVisible();
+    expect(screen.getByRole("button", { name: "STOP — hover in place" })).toBeVisible();
+
+    unmount();
+    render(<App />);
+    expect(screen.getByRole("button", { name: "Manual flight" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "Pre-flight checks" })).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Manual flight" }));
+    expect(screen.getByRole("button", { name: "Take off" })).toBeVisible();
+  });
+
+  it("keeps the chosen step while Manual flight is folded", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("radio", { name: "100 cm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manual flight" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manual flight" }));
     fireEvent.click(screen.getByRole("button", { name: "Move up 100 cm" }));
     expect(sentPayloads()).toEqual([{ type: "operator", action: "move", args: { direction: "up", cm: 100 } }]);
   });
@@ -206,6 +242,19 @@ describe("dashboard app", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /resume ai/i }));
     expect(sentPayloads()).toEqual([{ type: "operator", action: "resume" }]);
+  });
+
+  it("says Simulator, not Connected, when the server has no real drone", () => {
+    render(<App />);
+    act(() => mockSockets[0].onopen?.());
+    const status = screen.getByRole("list", { name: "Status" });
+
+    serverPush({ type: "mode", mode: "live", simulated: true });
+    expect(within(status).getByText("Simulator")).toBeInTheDocument();
+    expect(within(status).queryByText(/connected/i)).not.toBeInTheDocument();
+
+    serverPush({ type: "mode", mode: "live", simulated: false });
+    expect(within(status).getByText("Drone connected")).toBeInTheDocument();
   });
 
   it("shows LINK LOST prominently when the drone link drops", () => {

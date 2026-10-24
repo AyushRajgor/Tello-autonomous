@@ -11,6 +11,7 @@ export type PreflightCheck = { label: string; detail: string; status: "go" | "wa
  */
 export function preflightChecks({
   connected,
+  simulated = false,
   linkLost,
   battery,
   video,
@@ -18,6 +19,7 @@ export function preflightChecks({
   operatorHold
 }: {
   connected: boolean;
+  simulated?: boolean;
   linkLost: boolean;
   battery: number | undefined;
   video: boolean;
@@ -26,7 +28,9 @@ export function preflightChecks({
 }): PreflightCheck[] {
   return [
     { label: "Dashboard", detail: connected ? "Connected" : "Reconnecting", status: connected ? "go" : "nogo" },
-    { label: "Drone link", detail: linkLost ? "No telemetry" : "Receiving telemetry", status: linkLost ? "nogo" : "go" },
+    simulated
+      ? { label: "Drone link", detail: "Simulator. No real drone is connected", status: "warn" }
+      : { label: "Drone link", detail: linkLost ? "No telemetry" : "Receiving telemetry", status: linkLost ? "nogo" : "go" },
     {
       label: "Battery",
       detail:
@@ -103,7 +107,7 @@ export function VerdictBadge({ verdict }: { verdict: "go" | "nogo" }) {
   return (
     <span
       className={cn(
-        "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[13px] font-medium whitespace-nowrap",
+        "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[13px] leading-4 font-medium whitespace-nowrap",
         verdict === "go" ? "bg-success-subtle text-success-text" : "bg-destructive-subtle text-destructive-text"
       )}
     >

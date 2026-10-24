@@ -36,6 +36,8 @@
   --border: oklch(0.92 0.004 260);
   --input: oklch(0.64 0.01 260);
   --ring: oklch(0.53 0.18 262);
+  --scrollbar-thumb: oklch(0.87 0.004 260);
+  --scrollbar-thumb-hover: oklch(0.72 0.008 260);
 
   /* Accent (interactive, selected, the one primary action) */
   --primary: oklch(0.53 0.18 262);
@@ -97,6 +99,8 @@
   --border: oklch(0.29 0.006 260);
   --input: oklch(0.53 0.01 260);
   --ring: oklch(0.74 0.12 262);
+  --scrollbar-thumb: oklch(0.34 0.006 260);
+  --scrollbar-thumb-hover: oklch(0.5 0.01 260);
 
   --primary: oklch(0.55 0.16 262);
   --primary-foreground: oklch(1 0 0);
@@ -193,6 +197,38 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Slim, quiet scrollbars: a 6px thumb in a 10px track (still easy to grab),
+     darker on hover. Chromium ignores ::-webkit-scrollbar once the standard
+     properties are set, so those are for browsers without it (Firefox). */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-color: var(--scrollbar-thumb);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+  }
+
   /* Icons keep their stroke weight at every size (Lucide draws on a 24px grid). */
   svg.lucide :where(path, circle, rect, line, polyline, polygon, ellipse) {
     vector-effect: non-scaling-stroke;
@@ -200,8 +236,11 @@
 }
 
 @layer components {
-  /* A raised surface: shadow for depth, a transparent border for forced-colors mode. */
+  /* A raised surface: shadow for depth, a transparent border for forced-colors mode.
+     Positioned so sr-only text inside stays in the panel; otherwise it is placed
+     against the viewport, escapes every overflow clip and makes the page scroll. */
   .surface {
+    position: relative;
     border: 1px solid transparent;
     border-radius: var(--radius-xl);
     background-color: var(--card);

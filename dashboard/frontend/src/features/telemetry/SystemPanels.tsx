@@ -17,6 +17,7 @@ export function SystemPanels({ snapshot, micActive }: { snapshot: DashboardSnaps
       title: "Connection",
       rows: [
         ["Dashboard", snapshot.connection === "connected" ? "Connected" : snapshot.connection === "connecting" ? "Connecting" : "Offline"],
+        ["Drone", snapshot.simulated ? "Simulator (no real drone)" : linkLost ? "Link lost" : "Connected"],
         ["Video", snapshot.videoStatus.active ? (snapshot.videoStatus.source === "drone" ? "Drone camera" : "Webcam") : "No feed"],
         ["Telemetry", "Every second"]
       ]

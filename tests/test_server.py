@@ -124,7 +124,7 @@ class TestAccessControl:
     def test_allowed_origin_accepted(self, client):
         with client.websocket_connect("/ws", headers={"origin": "http://localhost:8080"}) as ws:
             assert ws.receive_json()["type"] == "state"
-            assert ws.receive_json() == {"type": "mode", "mode": "legacy"}
+            assert ws.receive_json() == {"type": "mode", "mode": "legacy", "simulated": True}
 
     def test_vite_dev_origin_accepted(self, client):
         with client.websocket_connect("/ws", headers={"origin": "http://127.0.0.1:5173"}) as ws:
@@ -343,7 +343,7 @@ class TestLivePushToTalk:
         try:
             with c.websocket_connect("/ws") as ws:
                 ws.receive_json()
-                assert ws.receive_json() == {"type": "mode", "mode": "live"}
+                assert ws.receive_json() == {"type": "mode", "mode": "live", "simulated": True}
                 ws.send_json({"type": "audio_start"})
                 ws.send_bytes(b"\x01\x02")
                 ws.send_bytes(b"\x03\x04")

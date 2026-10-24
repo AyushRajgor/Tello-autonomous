@@ -14,9 +14,19 @@ const dotTone: Record<Tone, string> = {
   idle: "bg-muted-foreground"
 };
 
-function StatusItem({ tone, children, className }: { tone: Tone; children: React.ReactNode; className?: string }) {
+function StatusItem({
+  tone,
+  children,
+  className,
+  title
+}: {
+  tone: Tone;
+  children: React.ReactNode;
+  className?: string;
+  title?: string;
+}) {
   return (
-    <li className={cn("flex items-center gap-2 whitespace-nowrap", className)}>
+    <li title={title} className={cn("flex items-center gap-2 whitespace-nowrap", className)}>
       <span aria-hidden="true" className={cn("size-2 rounded-full", dotTone[tone])} />
       {children}
     </li>
@@ -51,8 +61,30 @@ export function formatFlightClock(seconds: number | undefined): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
+/** What the operator is flying: an open dashboard socket alone says nothing about the drone. */
+export function droneStatus(
+  connection: ConnectionState,
+  simulated: boolean,
+  linkLost: boolean
+): { tone: Tone; label: string; title?: string } {
+  if (connection === "connecting") {
+    return { tone: "idle", label: "Connecting…" };
+  }
+  if (connection !== "connected") {
+    return { tone: "bad", label: "Offline", title: "The dashboard can't reach the agent server." };
+  }
+  if (simulated) {
+    return { tone: "idle", label: "Simulator", title: "Started with --simulate: no real drone is connected." };
+  }
+  if (linkLost) {
+    return { tone: "bad", label: "Link lost", title: "No telemetry from the drone." };
+  }
+  return { tone: "ok", label: "Drone connected" };
+}
+
 export function TopBar({
   connection,
+  simulated,
   mode,
   flying,
   linkLost,
@@ -62,6 +94,7 @@ export function TopBar({
   settings
 }: {
   connection: ConnectionState;
+  simulated: boolean;
   mode: DashboardMode;
   flying: boolean;
   linkLost: boolean;
@@ -70,7 +103,7 @@ export function TopBar({
   flightSeconds: number | undefined;
   settings: React.ReactNode;
 }) {
-  const connectionLabel = connection === "connected" ? "Connected" : connection === "connecting" ? "Connecting…" : "Offline";
+  const drone = droneStatus(connection, simulated, linkLost);
   const agentLabel = mode === "live" ? "Gemini Live" : mode === "legacy" ? "Legacy agent" : "Agent starting…";
 
   return (
@@ -92,15 +125,14 @@ export function TopBar({
         </h1>
 
         <ul aria-label="Status" className="flex min-w-0 items-center gap-5 text-sm text-muted-foreground">
-          <StatusItem tone={connection === "connected" ? "ok" : connection === "connecting" ? "idle" : "bad"} className="max-md:hidden">
-            {connectionLabel}
+          {/* A problem (offline, link lost) stays visible on phones too. */}
+          <StatusItem tone={drone.tone} title={drone.title} className={drone.tone === "bad" ? undefined : "max-md:hidden"}>
+            {drone.label}
           </StatusItem>
           <StatusItem tone={mode === "unknown" ? "idle" : "ok"} className="max-lg:hidden">
             {agentLabel}
           </StatusItem>
-          <StatusItem tone={linkLost ? "bad" : flying ? "ok" : "idle"}>
-            {linkLost ? "Link lost" : flying ? "Flying" : "Landed"}
-          </StatusItem>
+          <StatusItem tone={flying ? "ok" : "idle"}>{flying ? "Flying" : "Landed"}</StatusItem>
           {operatorHold ? (
             <li className="flex items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-0.5 text-[13px] font-medium whitespace-nowrap text-warning-text max-sm:hidden">
               <Hand className="size-3.5" aria-hidden="true" />

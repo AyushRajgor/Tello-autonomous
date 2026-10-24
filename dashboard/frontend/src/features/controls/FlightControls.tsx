@@ -67,7 +67,7 @@ export function EmergencyControls({
         aria-label="STOP — hover in place"
         aria-keyshortcuts="Space"
         className={cn(
-          "flex h-14 w-full items-center gap-3 rounded-lg bg-destructive ps-4 pe-3 text-start text-white hover:bg-destructive/90",
+          "flex h-14 w-full items-center gap-3 rounded-lg bg-destructive px-3 text-start text-white hover:bg-destructive/90",
           press,
           "outline-none focus-visible:ring-[3px] focus-visible:ring-destructive/40"
         )}
@@ -294,13 +294,15 @@ export function FlightControls({
   const flipBlocked = battery !== undefined && battery <= LIMITS.flipMinBatteryPct;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="@container flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Segmented legend="Distance" name="step" unit=" cm" value={step} options={STEP_OPTIONS} onChange={setStep} />
         <Segmented legend="Turn" name="turn" unit="°" value={turn} options={TURN_OPTIONS} onChange={setTurn} />
       </div>
 
-      <div className="flex flex-wrap justify-around gap-4">
+      {/* Side by side whenever both 140px pads fit, sized by the panel, not the
+          viewport: a scrollbar in the controls column must not stack them. */}
+      <div className="grid justify-items-center gap-4 @min-[17.5rem]:grid-cols-2 @min-[17.5rem]:gap-x-0">
         <Pad
           label="Climb and turn"
           onOperator={onOperator}

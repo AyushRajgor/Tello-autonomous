@@ -55,6 +55,8 @@ describe("dashboard message reducer", () => {
     ].reduce(reduceDashboardMessage, createDashboardModel());
 
     expect(model.mode).toBe("live");
+    expect(model.simulated).toBe(false);
+    expect(reduceDashboardMessage(model, { type: "mode", mode: "live", simulated: true }).simulated).toBe(true);
     expect(model.state?.battery_pct).toBe(82);
     expect(model.traces[0]?.trace_id).toBe("trace-1");
     expect(model.frameSrc).toBe("data:image/jpeg;base64,abc");

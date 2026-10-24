@@ -19,6 +19,12 @@ describe("preflight", () => {
     expect(preflightVerdict(checks)).toBe("go");
   });
 
+  it("flags the simulator as a warning in the drone link check", () => {
+    const checks = preflightChecks({ ...ready, simulated: true });
+    expect(checks.find((c) => c.label === "Drone link")).toMatchObject({ status: "warn", detail: expect.stringMatching(/simulator/i) });
+    expect(preflightVerdict(checks)).toBe("go");
+  });
+
   it("is NO-GO when the console or drone link is down", () => {
     expect(preflightVerdict(preflightChecks({ ...ready, connected: false }))).toBe("nogo");
     expect(preflightVerdict(preflightChecks({ ...ready, linkLost: true }))).toBe("nogo");

@@ -10,6 +10,7 @@ export type VideoStatus = {
 
 export type DashboardSnapshot = {
   mode: DashboardMode;
+  simulated: boolean;
   connection: ConnectionState;
   state?: DashboardState;
   videoStatus: VideoStatus;

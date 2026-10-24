@@ -30,7 +30,7 @@ WebSocket protocol (browser -> server):
 
 Server -> browser:
   {"type": "state", "data": {...}}
-  {"type": "mode", "mode": "live" | "legacy"}
+  {"type": "mode", "mode": "live" | "legacy", "simulated": bool}
   {"type": "chat", "role": str, "text": str}
   {"type": "tool", "name", "args", "result", "status"}
   {"type": "operator_result", "action": str, "args": {...}, "result": {...}}
@@ -392,6 +392,7 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.send_text(json.dumps({
                 "type": "mode",
                 "mode": "live" if use_live else "legacy",
+                "simulated": toolkit.simulate,
             }))
 
         while True:

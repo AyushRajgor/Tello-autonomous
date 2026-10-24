@@ -34,6 +34,8 @@ export type DashboardMode = "live" | "legacy" | "unknown";
 
 export type DashboardModel = {
   mode: DashboardMode;
+  /** True when the server runs with --simulate: there is no real drone. */
+  simulated: boolean;
   state?: DashboardState;
   messages: ChatMessage[];
   tools: ToolCall[];
@@ -45,7 +47,7 @@ export type DashboardModel = {
 
 export type DashboardMessage =
   | { type: "state"; data: DashboardState }
-  | { type: "mode"; mode: DashboardMode }
+  | { type: "mode"; mode: DashboardMode; simulated?: boolean }
   | { type: "chat"; role: ChatRole; text: string }
   | { type: "tool"; name: string; status: string; args?: unknown; result?: unknown }
   | { type: "trace"; data: TraceSummaryInput }
@@ -76,6 +78,7 @@ const OPERATOR_LABELS: Record<string, string> = {
 export function createDashboardModel(): DashboardModel {
   return {
     mode: "unknown",
+    simulated: false,
     messages: [],
     tools: [],
     traces: [],
@@ -90,8 +93,8 @@ export function reduceDashboardMessage(model: DashboardModel, message: Dashboard
       return { ...model, state: payload.data };
     }
     case "mode": {
-      const payload = message as { mode?: DashboardMode };
-      return { ...model, mode: payload.mode ?? "unknown" };
+      const payload = message as { mode?: DashboardMode; simulated?: boolean };
+      return { ...model, mode: payload.mode ?? "unknown", simulated: payload.simulated === true };
     }
     case "chat": {
       const payload = message as { role?: ChatRole; text?: string };

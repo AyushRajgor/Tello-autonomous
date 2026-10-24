@@ -381,13 +381,14 @@ export function App() {
   const snapshot = React.useMemo<DashboardSnapshot>(
     () => ({
       mode: model.mode,
+      simulated: model.simulated,
       connection,
       state: model.state,
       videoStatus,
       tools: model.tools,
       traces: model.traces
     }),
-    [connection, model.mode, model.state, model.tools, model.traces, videoStatus]
+    [connection, model.mode, model.simulated, model.state, model.tools, model.traces, videoStatus]
   );
 
   const battery = getStateMetric<number | undefined>(model.state, "battery_pct", undefined);
@@ -400,6 +401,7 @@ export function App() {
   const operatorHold = isOperatorHold(model.state);
   const checks = preflightChecks({
     connected,
+    simulated: model.simulated,
     linkLost,
     battery,
     video: videoStatus.active && settings.camera,
@@ -422,6 +424,7 @@ export function App() {
       </a>
       <TopBar
         connection={connection}
+        simulated={model.simulated}
         mode={model.mode}
         flying={isFlying}
         linkLost={linkLost}
@@ -481,17 +484,24 @@ export function App() {
           />
         </section>
 
+        {/* The scroller clips at its padding edge, so -m-1.5/p-1.5 leaves room for
+            the panels' outer ring and shadow; top and max-h absorb the 6px. */}
         <aside
           aria-label="Controls"
-          className="flex min-h-0 flex-col gap-4 lg:sticky lg:top-[4.5rem] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100dvh-5.5rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain xl:static xl:col-start-3 xl:row-span-1 xl:max-h-none xl:self-stretch"
+          className="flex min-h-0 flex-col gap-4 lg:sticky lg:top-[4.125rem] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:-m-1.5 lg:max-h-[calc(100dvh-4.75rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:p-1.5 xl:static xl:col-start-3 xl:row-span-1 xl:max-h-none xl:self-stretch"
         >
+          {/* Safety never folds: Space/Esc are ignored while typing, so this Stop must stay one click away. */}
           <Panel title="Safety">
             <EmergencyControls onOperator={sendOperatorAction} connected={connected} />
           </Panel>
-          <Panel title="Manual flight" description="Sent straight to the drone. Safety limits still apply.">
+          <Panel title="Manual flight" description="Sent straight to the drone. Safety limits still apply." collapsibleId="manual-flight">
             <FlightControls onOperator={sendOperatorAction} onCommand={sendCommand} flying={isFlying} battery={battery} />
           </Panel>
-          <Panel title={isFlying ? "Flight checks" : "Pre-flight checks"} aside={<VerdictBadge verdict={preflightVerdict(checks)} />}>
+          <Panel
+            title={isFlying ? "Flight checks" : "Pre-flight checks"}
+            aside={<VerdictBadge verdict={preflightVerdict(checks)} />}
+            collapsibleId="checks"
+          >
             <PreflightList checks={checks} />
           </Panel>
         </aside>

@@ -6,9 +6,13 @@ The system runs without drone hardware in simulation mode. It has a text agent,
 a web dashboard, and a Gemini Live voice/video path. The safest and most useful
 development path is the simulated dashboard.
 
+The original v1 project (keyboard control, face tracking, voice commands) is
+preserved on the [`legacy/v1`](https://github.com/AyushRajgor/Tello-autonomous/tree/legacy/v1)
+branch. A copy of its code also lives in `legacy/`.
+
 ## Current Status
 
-- Toolkit, safety limits, safety watchdog, operator controls, state tracking, tracing and simulation are implemented and covered by tests (233 Python tests, 38 frontend tests).
+- Toolkit, safety limits, safety watchdog, operator controls, state tracking, tracing and simulation are implemented and covered by tests (233 Python tests, 62 frontend tests).
 - Dashboard mode uses the React/Vite operator console and Gemini Live (`gemini-3.8-live`) by default, with push-to-talk.
 - Text mode and `--dashboard --legacy-agent` use the `gemini-3.8-flash` function-calling loop. The planner sees camera frames directly in `get_frame` results.
 - `features/search.py` is a working, safety-checked object-search routine, but it is **not exposed as a tool** yet.
@@ -203,7 +207,7 @@ Tello-autonomous/
 |   `-- network_check.py    # Dual-network sanity check
 |-- tests/                  # pytest suite (simulation only, no drone needed)
 |-- docs/                   # Architecture, workflow, safety, component docs
-`-- legacy/                 # Archived pre-AI Tello code (unused)
+`-- legacy/                 # Archived pre-AI Tello code (unused; full v1 on the legacy/v1 branch)
 ```
 
 ## Tests
@@ -219,8 +223,8 @@ Python: 233 tests in 10 files. `test_safety_core.py` (63), `test_live_agent.py` 
 `test_model_config.py` (9), `test_tracing.py` (4). No test calls the real
 Gemini API or a real drone.
 
-Frontend: 38 Vitest tests in 6 files (`App`, `audio`, `dashboard-state`,
-`format`, `hotkeys`, `video-stream`).
+Frontend: 62 Vitest tests in 9 files (`App`, `audio`, `dashboard-state`,
+`format`, `hotkeys`, `PreflightPanel`, `timeline`, `trail`, `video-stream`).
 
 Useful checks:
 

@@ -1,6 +1,29 @@
+# Core
 djitellopy
-opencv-python
-pygame
-pyttsx3
-speech_recognition
-face_recognition
+# 2.23+: Live receive() handles interaction_status (gemini-3.8-live).
+# 3.x changes automatic function calling and removes Live methods — migrate first.
+google-genai>=2.23.0,<3.0.0
+openai
+
+# Audio — sounddevice is the primary driver (cross-platform, numpy-friendly).
+# PyAudio is kept as an optional fallback on older setups.
+sounddevice
+numpy
+PyAudio
+
+# Web Dashboard — let FastAPI own its compatible Starlette dependency.
+fastapi>=0.143,<0.144
+uvicorn>=0.54
+websockets
+jinja2
+
+# Utilities
+python-dotenv
+Pillow
+pydantic
+# opencv-python 5.x is a new major; stay on 4.x until it's been validated here.
+opencv-python>=4.10,<5
+
+# Tests
+pytest
+httpx2>=2.13  # FastAPI/Starlette TestClient (plain httpx is deprecated there)

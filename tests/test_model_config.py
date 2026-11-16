@@ -16,6 +16,9 @@ RETIRED_MODELS = {
     "gemini-robotics-er-1.6-preview",  # shut down 2026-08-31
     "gemini-2.5-flash-native-audio",
     "gemini-3-flash-preview",
+    "gpt-4o-realtime-preview",         # OpenAI, shut down 2026-05-07
+    "gpt-realtime",                    # OpenAI, deprecated, shutdown 2027-01-20
+    "gpt-realtime-mini",               # OpenAI, deprecated, shutdown 2027-01-20
 }
 
 

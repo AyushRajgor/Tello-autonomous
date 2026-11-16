@@ -17,7 +17,7 @@ TelloAI Agent is a voice-controlled autonomous drone system for the DJI Tello, p
 .\venv\Scripts\python.exe main.py --voice                 # Open-mic Live voice (use headphones)
 .\venv\Scripts\python.exe main.py --voice-text            # Live session, typed input
 
-# Tests (233 Python tests, 38 frontend tests)
+# Tests (233 Python tests, 62 frontend tests)
 .\venv\Scripts\python.exe -m pytest tests/ -q
 .\venv\Scripts\python.exe -m pytest tests/test_safety_core.py -v
 .\venv\Scripts\python.exe -m pytest tests/test_toolkit.py::TestSafety -v
@@ -103,6 +103,8 @@ core/watchdog.py thread (every 1 s): battery warn / force-land, keepalive, link 
 - Quick checks (`check_path_clear`): `gemini-3.5-flash-lite`, thinking `minimal`.
 - Live: `gemini-3.8-live` (not `-extended-thinking`, which rejects BLOCKING tools). No thinking config.
 - Spatial: `gemini-robotics-er-2-preview`, configured but unused.
+- OpenAI fallback: `gpt-realtime-2.1`, configured but unused.
+- Last verified 2026-11-17. IDs churn fast; re-check ai.google.dev before trusting them.
 
 ### Safety Thresholds (config.py `SAFETY`)
 
@@ -125,4 +127,4 @@ A real drone needs two networks: `TELLO-*` WiFi for the drone and a second link 
 - Toolkit calls block (UDP round-trips, multi-second moves). From async code, always call them via `asyncio.to_thread` (or an executor), never directly on the event loop.
 - Watchdog listeners run on the watchdog thread; marshal to the event loop with `loop.call_soon_threadsafe`.
 - Tests use simulated toolkits (fixtures such as `toolkit`, `flying_toolkit`), a `FakeTello` for real-drone code paths, and fake Gemini clients. No test needs an API key or a drone.
-- `legacy/` is the archived pre-AI codebase (2021–2022) and is not used.
+- `legacy/` is the archived pre-AI codebase (2021–2022) and is not used. The original v1 repository is preserved on the `legacy/v1` branch; never delete or rewrite that branch.

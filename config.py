@@ -14,9 +14,11 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # ── Model Strings ──
-# Each is the newest model of its line, verified 2026-10-13 against the
+# Each is the newest model of its line, verified 2026-11-17 against the
 # Gemini API models list for this key and ai.google.dev/gemini-api/docs/models.
-# (gemini-omni-* are video-generation models — not applicable here.)
+# (gemini-omni-* are video-generation models — not applicable here.
+# gemini-4-argon and gemini-4-carbon have no Live API and cost ~2.7x 3.8 Flash,
+# ~5.3x from 2026-12-01 — not worth it for drone turns.)
 MODELS = {
     # Real-time voice + vision via Live API WebSocket. GA since 2026-09-15;
     # replaces gemini-3.1-flash-live-preview (shutdown 2026-11-17).
@@ -26,17 +28,23 @@ MODELS = {
     # Main reasoning model for the non-Live text agent in core/agent.py.
     # GA since 2026-09-02 (gemini-3.5-flash was deprecated 2026-10-08).
     # Thinking levels: low/medium/high — "minimal" is rejected.
+    # gemini-4-hydrogen (GA 2026-11-12, $1.50/$7.50) costs the same once 3.8
+    # Flash's price doubles on 2027-01-01 — evaluate it before then.
     "vision_reasoning": "gemini-3.8-flash",
     # Fast yes/no checks, "is path clear?". GA since 2026-07-21; newest and
     # fastest Flash-Lite (supports thinking "minimal"). Replaces
     # gemini-3.1-flash-lite (cheaper, GA until 2027-05-07).
+    # gemini-decision-1 (Decisions API, 2026-11-11) returns calibrated yes/no
+    # probabilities and is a candidate here; it needs google-genai>=3.2 or REST.
     "vision_quick": "gemini-3.5-flash-lite",
     # Spatial precision: 2D object pointing ([y, x] normalized 0-1000).
     # gemini-robotics-er-1.6-preview was shut down 2026-08-31.
     "vision_spatial": "gemini-robotics-er-2-preview",
-    # OpenAI fallback (unused for now). gpt-realtime-2.1: newest Realtime-API
-    # model with tool use (gpt-live-1 lacks image/video input and the
-    # Realtime endpoint, so it can't drive the drone).
+    # OpenAI fallback (unused for now). gpt-realtime-2.1 (2026-07-06) is still
+    # the newest Realtime-API model with tool use and image input (stills, no
+    # video), verified 2026-11-17. gpt-live-1 is audio/text only on its own
+    # endpoint and its tools never block, so it can't drive the drone.
+    # gpt-realtime and gpt-realtime-mini shut down 2027-01-20.
     "voice_fallback": "gpt-realtime-2.1",
 }
 

@@ -1,7 +1,8 @@
 # Core
 djitellopy
 # 2.23+: Live receive() handles interaction_status (gemini-3.8-live).
-# 3.x changes automatic function calling and removes Live methods — migrate first.
+# 3.x is out (3.0 switched the default API version to v1; 3.2 adds the
+# Decisions API). Stay on 2.x until the Live path is migrated and tested.
 google-genai>=2.23.0,<3.0.0
 openai
 

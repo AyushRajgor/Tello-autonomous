@@ -2,7 +2,7 @@
 Cost Calculator for LLM calls based on tokens.
 """
 
-# Pricing table (USD per million tokens, verified October 2026 at
+# Pricing table (USD per million tokens, verified 2026-11-17, Live rates 2026-10-24, at
 # ai.google.dev/gemini-api/docs/pricing). Output rates include thinking tokens.
 # Scheduled increases (not yet applied): gemini-3.8-flash goes to $1.50 / $7.50
 # and gemini-robotics-er-2-preview to $2.00 / $10.00 on 2027-01-01.

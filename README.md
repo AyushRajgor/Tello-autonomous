@@ -139,6 +139,14 @@ Model IDs live in `config.py` (`MODELS`). Prices live in `core/cost.py`.
 | Text agent / reasoning vision | `gemini-3.8-flash` | Thinking `medium` (3.8 Flash accepts low/medium/high; `minimal` is rejected). No temperature is sent. |
 | Quick vision checks | `gemini-3.5-flash-lite` | Thinking `minimal`. Newest Flash-Lite (GA 2026-07-21); replaces `gemini-3.1-flash-lite`. |
 | Spatial pointing (configured, unused) | `gemini-robotics-er-2-preview` | Replaces `gemini-robotics-er-1.6-preview` (shut down 2026-08-31). No code calls it yet. |
+| OpenAI voice fallback (configured, unused) | `gpt-realtime-2.1` | Newest OpenAI Realtime model with tool calls and image input (stills, no video). No code calls it yet. |
+
+Last checked 2026-11-17: each ID is still the newest of its line, with no
+shutdown announced. Not used yet:
+
+- `gemini-4-argon` and `gemini-4-carbon`: no Live API, and about 2.7x the price of `gemini-3.8-flash`.
+- `gemini-4-hydrogen` (GA 2026-11-12, $1.50 / $7.50): the same price as 3.8 Flash from 2027-01-01, so worth testing for the text agent before then.
+- `gemini-decision-1` (Decisions API, 2026-11-11): calibrated yes/no answers, a candidate for the path check. Needs `google-genai` 3.2+ or a plain REST call.
 
 The Live path is the default for `--voice` and `--dashboard`. It keeps one
 logical session open (context-window compression plus session resumption across
@@ -150,7 +158,7 @@ with backoff (`GEMINI_HTTP_RETRY` in `config.py`, `core/genai_client.py`).
 ## Dependencies
 
 - Use the project venv, not the global Python installation.
-- `google-genai>=2.23.0,<3.0.0`: 2.23 handles the Live `interaction_status` used by `gemini-3.8-live`. 3.x removes Live methods this project uses.
+- `google-genai>=2.23.0,<3.0.0`: 2.23 handles the Live `interaction_status` used by `gemini-3.8-live`. 3.x is out (3.3.0 as of 2026-11-17): 3.0 switched the default API version to v1, and 3.2 adds the Decisions API. Stay on 2.x until the Live path is migrated and tested.
 - `fastapi>=0.143,<0.144`. Starlette is not pinned; FastAPI owns that dependency.
 - `httpx2` is required for FastAPI/Starlette's `TestClient`.
 - `opencv-python>=4.10,<5`: 5.x has not been validated here.

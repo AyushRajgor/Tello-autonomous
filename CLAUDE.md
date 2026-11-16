@@ -103,6 +103,8 @@ core/watchdog.py thread (every 1 s): battery warn / force-land, keepalive, link 
 - Quick checks (`check_path_clear`): `gemini-3.5-flash-lite`, thinking `minimal`.
 - Live: `gemini-3.8-live` (not `-extended-thinking`, which rejects BLOCKING tools). No thinking config.
 - Spatial: `gemini-robotics-er-2-preview`, configured but unused.
+- OpenAI fallback: `gpt-realtime-2.1`, configured but unused.
+- Last verified 2026-11-17. IDs churn fast; re-check ai.google.dev before trusting them.
 
 ### Safety Thresholds (config.py `SAFETY`)
 

@@ -29,6 +29,9 @@ export default defineConfig({
     }
   },
   test: {
-    environment: "jsdom"
+    environment: "jsdom",
+    // Node 25+ defines its own localStorage (undefined without --localstorage-file),
+    // and vitest won't replace a global Node already has, so jsdom's never shows up.
+    execArgv: ["--no-experimental-webstorage"]
   }
 });
